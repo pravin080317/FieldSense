@@ -9,6 +9,7 @@ import type {
 } from "../types/farm.ts";
 import type { Workspace } from "../types/workspace.ts";
 import type { ScoutingPoint } from "../types/domain.ts";
+import { crops, isOngoingCrop } from "../data/crops.ts";
 const rec = (v: unknown): Record<string, unknown> => {
   if (!v || typeof v !== "object" || Array.isArray(v))
     throw new Error("Invalid farm record.");
@@ -131,11 +132,16 @@ export function parseField(value: unknown): FarmField {
 }
 export function parseSeason(value: unknown): FarmSeason {
   const r = rec(value);
-  const sow = calendarDate(r.sowingDate),
-    harvest = calendarDate(r.expectedHarvestDate);
-  if (harvest <= sow) throw new Error("Expected harvest must be after sowing.");
-  if (r.crop !== "rice")
-    throw new Error("This demonstration currently supports paddy (rice).");
+  const sow =
+    r.sowingDate === "" && isOngoingCrop(String(r.crop))
+      ? ""
+      : calendarDate(r.sowingDate);
+  const harvest =
+    r.expectedHarvestDate === "" ? "" : calendarDate(r.expectedHarvestDate);
+  if (sow && harvest && harvest <= sow)
+    throw new Error("Expected harvest must be after sowing.");
+  if (!crops.some((crop) => crop.id === r.crop))
+    throw new Error("Choose a crop from the list.");
   if (
     ![
       "not-set",
@@ -152,7 +158,7 @@ export function parseSeason(value: unknown): FarmSeason {
     id: str(r, "id"),
     fieldId: str(r, "fieldId"),
     name: str(r, "name"),
-    crop: "rice",
+    crop: r.crop as FarmSeason["crop"],
     variety: str(r, "variety"),
     sowingDate: sow,
     expectedHarvestDate: harvest,
@@ -166,16 +172,16 @@ export function seedFarm(): FarmState {
       {
         id: "field-01",
         name: "Paddy Field 01",
-        locality: "Salem, Tamil Nadu",
+        locality: "Yethapur, Salem, Tamil Nadu",
         areaHectares: 1.2,
-        location: { lat: 11.6643, lng: 78.146 },
+        location: { lat: 11.6545, lng: 78.4855 },
         boundary: [
-          { lat: 11.6638, lng: 78.1455 },
-          { lat: 11.6638, lng: 78.1465 },
-          { lat: 11.6648, lng: 78.1465 },
-          { lat: 11.6648, lng: 78.1455 },
+          { lat: 11.654, lng: 78.485 },
+          { lat: 11.654, lng: 78.486 },
+          { lat: 11.655, lng: 78.486 },
+          { lat: 11.655, lng: 78.485 },
         ],
-        irrigationSource: "Not recorded",
+        irrigationSource: "Canal + borewell (sample)",
         isIllustrative: true,
       },
     ],
@@ -229,7 +235,30 @@ export function parseFarmState(value: unknown, legacy = false): FarmState {
     !Array.isArray(r.tasks)
   )
     throw new Error("Fields, seasons and tasks are required.");
-  const fields = r.fields.map(parseField),
+  const fields = r.fields.map(parseField).map((f) =>
+      f.id === "field-01" &&
+      f.isIllustrative &&
+      ((Math.abs(f.location.lat - 11.6643) < 0.001 &&
+        Math.abs(f.location.lng - 78.146) < 0.001) ||
+        (Math.abs(f.location.lat - 11.5845) < 0.001 &&
+          Math.abs(f.location.lng - 78.2915) < 0.001))
+        ? {
+            ...f,
+            locality: "Yethapur, Salem, Tamil Nadu",
+            location: { lat: 11.6545, lng: 78.4855 },
+            boundary: [
+              { lat: 11.654, lng: 78.485 },
+              { lat: 11.654, lng: 78.486 },
+              { lat: 11.655, lng: 78.486 },
+              { lat: 11.655, lng: 78.485 },
+            ],
+            irrigationSource:
+              f.irrigationSource === "Not recorded"
+                ? "Canal + borewell (sample)"
+                : f.irrigationSource,
+          }
+        : f,
+    ),
     seasons = r.seasons.map(parseSeason);
   if (
     new Set(fields.map((f) => f.id)).size !== fields.length ||

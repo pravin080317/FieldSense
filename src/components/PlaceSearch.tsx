@@ -1,3 +1,4 @@
+import { GuidedField } from "./GuidedField";
 import { useEffect, useRef, useState } from "react";
 import { searchPlaces } from "../services/placeSearch";
 import type { PlaceResult } from "../services/placeSearch";
@@ -59,8 +60,10 @@ export function PlaceSearch({
         the map. Place results do not identify farm boundaries.
       </p>
       <div className="place-search-controls">
-        <label>
-          Town or village
+        <GuidedField
+          label="Town or village"
+          help="Enter the nearest town or village and press Search places. Choose the correct state from the results, then place your field more precisely on the map."
+        >
           <input
             value={query}
             maxLength={120}
@@ -80,9 +83,11 @@ export function PlaceSearch({
             }}
             placeholder="e.g. Salem, Tamil Nadu"
           />
-        </label>
-        <label>
-          Search area
+        </GuidedField>
+        <GuidedField
+          label="Where should we search?"
+          help="Choose India for nearby places or Worldwide for another country. Searching needs an internet connection."
+        >
           <select
             value={country}
             onChange={(e) => {
@@ -97,7 +102,7 @@ export function PlaceSearch({
             <option value="IN">India</option>
             <option value="">Worldwide</option>
           </select>
-        </label>
+        </GuidedField>
         <button
           type="button"
           disabled={busy || query.trim().length < 3}

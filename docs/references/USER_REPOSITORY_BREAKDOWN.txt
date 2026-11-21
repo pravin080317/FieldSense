@@ -1,0 +1,248 @@
+Here is the full breakdown for each of the 20 repositories, including its overview, GitHub link, and core technical features.
+
+---
+
+### 1. AI, Computer Vision & Geospatial ML
+
+#### 1. Microsoft FarmVibes.AI
+
+* **GitHub:** [https://github.com/microsoft/farmvibes-ai](https://github.com/microsoft/farmvibes-ai)
+* **Overview:** Microsoft’s open-source multi-modal geospatial machine learning platform designed to fuse satellite imagery, drone data, weather forecasts, and soil sensors into actionable agricultural and sustainability insights.
+* **Key Features:**
+* **Multi-Modal Data Fusion Engine (TerraVibes):** Combines optical/radar satellite imagery (Sentinel-1/2, NAIP), elevation maps (USGS), and weather telemetry (NOAA) into unified, time-aligned tensors.
+* **DAG Workflow Orchestration:** Uses Directed Acyclic Graphs (DAGs) with typed edges to compose reusable data ingestion, preprocessing, and ML inference pipelines.
+* **Cloud & Local Deployment:** Includes Azure Bicep templates for one-click Azure VM deployment alongside local Linux/Docker cluster execution and a REST API/Python client.
+* **Pre-Built Domain Notebooks:** Provides ready-to-tune ML workflows for harvest date detection, carbon footprint estimation, micro-climate prediction, and crop classification.
+
+
+
+#### 2. AgML (Agricultural Machine Learning)
+
+* **GitHub:** [https://github.com/Project-AgML/AgML](https://github.com/Project-AgML/AgML)
+* **Overview:** A centralized Python framework that standardizes access to public agricultural computer vision datasets, synthetic data generation, and pre-trained deep learning models.
+* **Key Features:**
+* **Unified Dataset Loaders:** One-line downloading and loading of dozens of public datasets (covering weed detection, crop phenotyping, disease classification, and fruit counting) directly into PyTorch, TensorFlow, or Hugging Face `DatasetDict` pipelines.
+* **Multi-Spectral & Multi-Modal Support:** Handles standard RGB imagery alongside multispectral bands and image-text-to-text multimodal agricultural datasets.
+* **Synthetic Data & Benchmarking:** Integrates tools for generating synthetic agricultural annotations and evaluating dataset quality/diversity.
+* **Stratified Splitting & Caching:** Built-in bounded byte caching and label-stratified train/val/test splitting out of the box.
+
+
+
+#### 3. PlantCV
+
+* **GitHub:** [https://github.com/danforthcenter/plantcv](https://github.com/danforthcenter/plantcv)
+* **Overview:** An open-source image analysis software package developed by the Donald Danforth Plant Science Center for high-throughput, non-destructive plant phenotyping.
+* **Key Features:**
+* **Morphological & Color Trait Extraction:** Quantifies plant size, shape, leaf count, height, canopy cover, and color histograms across RGB, hyperspectral, and thermal imagery.
+* **Multi-Plant & Leaf Segmentation:** Isolates individual plants and leaves from complex backgrounds using thresholding, watershed segmentation, and machine learning classifiers.
+* **Landmark Morphometrics:** Identifies key anatomical landmarks on leaves and roots to measure growth geometry over time.
+* **Parallel Processing & R Integration:** Scales across high-throughput imaging facilities and pairs with the `pcvr` R package for longitudinal Bayesian growth modeling.
+
+
+
+#### 4. PlantVillage Dataset
+
+* **GitHub:** [https://github.com/spMohanty/PlantVillage-Dataset](https://github.com/spMohanty/PlantVillage-Dataset)
+* **Overview:** One of the foundational open-access computer vision datasets for automated plant pathology, containing over 54,000 labeled images of healthy and diseased crop leaves.
+* **Key Features:**
+* **Broad Crop & Disease Coverage:** Spans 38 distinct classes across 14 crop species and 26 plant diseases.
+* **Multiple Visual Modalities:** Includes raw RGB color images, grayscale versions, and background-segmented leaf cutouts.
+* **Leakage-Free Splitting Metadata:** Provides leaf-grouping mappings and pre-defined 80/20 train/test splits to prevent multiple photos of the same leaf from leaking across training and validation sets.
+* **Hugging Face Hub Integration:** Includes native loader scripts for direct streaming into modern vision pipelines.
+
+
+
+#### 5. CropNet
+
+* **GitHub:** [https://github.com/fudong03/CropNet](https://github.com/fudong03/CropNet)
+* **Overview:** A large-scale, multi-modal dataset and deep learning benchmark designed for climate-change-aware crop yield prediction across the United States.
+* **Key Features:**
+* **Tri-Modal Data Alignment:** Fuses 14-day revisit Sentinel-2 satellite imagery (RGB and NDVI), daily/monthly gridded WRF-HRRR meteorological data (9 weather parameters), and county-level USDA crop yield records.
+* **Multi-Crop Coverage:** Tracks historical yield and weather correlations for corn, cotton, soybeans, and winter wheat.
+* **Spatial-Temporal Vision Transformer (MMST-ViT) Support:** Paired with PyTorch implementations engineered to capture both short-term growing-season weather shocks and multi-year climate shifts.
+
+
+
+#### 6. U-TAE & PaPs (`utae-paps`)
+
+* **GitHub:** [https://github.com/VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps)
+* **Overview:** Official PyTorch implementation of U-Net with Temporal Attention Encoder (U-TAE) and Parcels-as-Points (PaPs) for semantic and panoptic segmentation of satellite image time series.
+* **Key Features:**
+* **Spatio-Temporal Encoding (U-TAE):** Extracts multi-scale spatial features from Sentinel-2 time series and collapses the temporal dimension via lightweight temporal self-attention.
+* **Instance-Level Field Delineation (PaPs):** Predicts centerness heatmaps and instance masks to separate individual agricultural parcels alongside crop-type classification.
+* **Variable-Length Sequence Handling:** Supports batch training on satellite sequences of varying lengths and handles partial cloud cover natively.
+* **PASTIS Benchmark Integration:** Includes pre-trained weights and evaluation scripts for the PASTIS panoptic agricultural dataset.
+
+
+
+#### 7. EuroCrops
+
+* **GitHub:** [https://github.com/maja601/EuroCrops](https://github.com/maja601/EuroCrops)
+* **Overview:** A pan-European geospatial dataset collection harmonizing self-declared agricultural parcel boundaries and crop types across European Union member states for Earth observation ML.
+* **Key Features:**
+* **Hierarchical Crop and Agriculture Taxonomy (HCAT):** Translates and standardizes disparate national crop declarations into a unified, machine-readable 10-digit hierarchical taxonomy.
+* **Geo-Referenced Vector Shapefiles:** Provides polygon parcel geometries enriched with NUTS3 regional codes for spatially stratified ML train/test splitting.
+* **Sentinel-2 Ready:** Structured specifically for time-series crop classification and remote sensing pipelines.
+
+
+
+#### 8. FruitNeRF
+
+* **GitHub:** [https://github.com/meyerls/FruitNeRF](https://github.com/meyerls/FruitNeRF)
+* **Overview:** A 3D computer vision framework integrated into Nerfstudio that uses Neural Radiance Fields (NeRF) to reconstruct orchards in 3D and perform automated fruit counting.
+* **Key Features:**
+* **Semantic NeRF Reconstruction:** Fuses multi-view RGB images with 2D semantic segmentation masks (via Grounded-SAM) to build a 3D volumetric representation of trees and fruits.
+* **3D Point Cloud Extraction & Clustering:** Converts the trained radiance field into a semantic 3D point cloud, applies outlier filtering, and runs density-based clustering to count individual fruits even under partial occlusion.
+* **Nerfstudio CLI Integration:** Provides end-to-end command-line pipelines (`ns-process-fruit-data`) for custom orchard video or image datasets.
+
+
+
+---
+
+### 2. Cloud-Native Farm Management Systems (FMIS) & APIs
+
+#### 9. farmOS
+
+* **GitHub:** [https://github.com/farmOS/farmOS](https://github.com/farmOS/farmOS)
+* **Overview:** A widely adopted, web-based open-source farm management, planning, and record-keeping platform built on Drupal/PHP with a modular API-first architecture.
+* **Key Features:**
+* **Asset & Log Data Model:** Tracks plantings, animals, equipment, sensors, and materials as "Assets," linked to timestamped activity "Logs" (seeding, inputs, harvests, observations).
+* **Interactive Spatial Mapping (`farmOS-map`):** Built-in OpenLayers mapping engine supporting WKT/GeoJSON polygon drawing, GPS layers, and spatial asset clustering.
+* **REST/JSON:API & Client SDKs:** Exposes full CRUD endpoints paired with official Python (`farmOS.py`) and JavaScript (`farmOS.js`) libraries for sensor ingestion and data aggregation.
+* **Offline-First Field Companion (`field-kit`):** Supports disconnected field data entry with background sync.
+
+
+
+#### 10. LiteFarm
+
+* **GitHub:** [https://github.com/LiteFarmOrg/LiteFarm](https://github.com/LiteFarmOrg/LiteFarm)
+* **Overview:** A full-stack (React, Node.js, PostgreSQL) participatory farm management application built with growers and researchers to track operational, environmental, and financial sustainability.
+* **Key Features:**
+* **Digital Farm Mapping:** Bird’s-eye geospatial mapping to sketch field boundaries, greenhouses, water sources, and infrastructure.
+* **Seasonal Workflow & Task Management:** Tracks planting-to-harvest schedules, crew task assignments, and input applications.
+* **Certification & Compliance Reporting:** Simplifies record exports required for organic certification, rural credit programs, and ecosystem service payments.
+* **Multi-User Role Permissions:** Supports farm owners, managers, and field workers with localized, mobile-friendly interfaces.
+
+
+
+#### 11. Ekylibre
+
+* **GitHub:** [https://github.com/ekylibre/ekylibre](https://github.com/ekylibre/ekylibre)
+* **Overview:** An enterprise-grade open-source Farm Management Information System (FMIS) and ERP built on Ruby on Rails and PostgreSQL for commercial farms and cooperatives.
+* **Key Features:**
+* **End-to-End ERP & Accounting:** Integrates crop and livestock production tracking directly with inventory management, invoicing, procurement, and double-entry accounting.
+* **AI OCR Invoice Processing:** Includes automated document ingestion and OCR parsing for supplier bills and inputs.
+* **Regulatory & Phytosanitary Compliance:** Validates chemical input dosages and regulatory constraints against European agricultural standards.
+* **Extensible Plugin & Connector Ecosystem:** Supports custom hardware/sensor connectors, S3 backups, and Dockerized cloud deployments.
+
+
+
+#### 12. Tania (`tania-core`)
+
+* **GitHub:** [https://github.com/usetania/tania-core](https://github.com/usetania/tania-core)
+* **Overview:** A lightweight, Domain-Driven Design (DDD) farm management system written in Go and TypeScript/React, tailored for smallholders, vertical farms, and greenhouses.
+* **Key Features:**
+* **Area & Sub-Area Hierarchy:** Models growing spaces, reservoirs, and micro-plots with batch-level crop lifecycle tracking from seeding to harvest.
+* **IoT & MQTT Telemetry Gateway:** Connects directly to field sensors via MQTT brokers to log environmental metrics.
+* **Mobile-First Field UI:** Designed for low-friction smartphone use in greenhouses and fields with role-based access control and task templates.
+* **Single-Binary Go Deployment:** Compiles cleanly for low-resource cloud VMs or edge servers.
+
+
+
+#### 13. OpenFarm
+
+* **GitHub:** [https://github.com/openfarmcc/OpenFarm](https://github.com/openfarmcc/OpenFarm)
+* **Overview:** An open-source, community-curated agricultural knowledgebase and REST API designed to structure growing guides and crop metadata for both humans and automated farming software. *(Note: The hosted web service was archived in 2025, though the Ruby on Rails codebase and schema remain open-source).*
+* **Key Features:**
+* **Structured Growing Guides:** Breaks crop cultivation down into discrete lifecycle stages with sun, soil, water, spacing, and sowing depth parameters.
+* **Machine-Readable Crop API:** Exposes JSON endpoints consumed by robotics platforms (such as FarmBot) to automate plant-specific care routines.
+* **Companion Planting & Crop Metadata:** Catalogs plant compatibility, binomial nomenclature, and open crop SVG iconography (`open-crop-icons`).
+
+
+
+---
+
+### 3. Robotics, Autonomous Navigation & Precision Hardware
+
+#### 14. Fields2Cover
+
+* **GitHub:** [https://github.com/Fields2Cover/Fields2Cover](https://github.com/Fields2Cover/Fields2Cover)
+* **Overview:** A high-performance C++17 coverage path-planning library (with Python bindings and ROS 2 integration) built specifically for autonomous agricultural vehicles.
+* **Key Features:**
+* **Modular Planning Pipeline:** Separates headland generation, swath generation, route ordering, and path smoothing into interchangeable modules.
+* **Kinematically Feasible Turns:** Generates non-holonomic vehicle turns using Dubins and Reeds-Shepp curves (with optional continuous curvature) to respect tractor turning radii.
+* **Multi-Pattern Route Optimization:** Supports boustrophedon, snake, and spiral swath patterns alongside Google OR-Tools route optimization.
+* **ROS 2 Nav2 Integration:** Integrates directly into `opennav_coverage` for real-world autonomous field execution.
+
+
+
+#### 15. OpenWeedLocator (OWL)
+
+* **GitHub:** [https://github.com/geezacoleman/OpenWeedLocator](https://github.com/geezacoleman/OpenWeedLocator)
+* **Overview:** A low-cost, open-source hardware and software system using Raspberry Pi and computer vision to detect weeds in real time and trigger targeted spot-spraying.
+* **Key Features:**
+* **Dual Detection Modes:** Supports color-based **Green-on-Brown** algorithms (for fallow fields) and deep learning **Green-on-Green** YOLOv8 inference (for in-crop weed detection).
+* **High-Speed Relay Actuation:** Triggers individual solenoid spray nozzles in milliseconds at vehicle speeds up to 30 km/h.
+* **3D-Printable Enclosures & BOM:** Includes STL files, wiring schematics, and off-the-shelf hardware lists for building multi-channel boom units.
+* **Standalone & Networked Dashboards:** Web-based control interface for sensitivity tuning, logging, and bench testing.
+
+
+
+#### 16. FarmBot OS (`farmbot_os`)
+
+* **GitHub:** [https://github.com/FarmBot/farmbot_os](https://github.com/FarmBot/farmbot_os)
+* **Overview:** An embedded, fault-tolerant Linux operating system written primarily in Elixir (using the Nerves framework) that powers FarmBot’s open-source CNC precision farming gantry robots.
+* **Key Features:**
+* **Real-Time G-Code & Hardware Control:** Communicates over serial with Farmduino microcontrollers to drive stepper motors, rotary encoders, vacuum seed injectors, and water valves.
+* **Visual Sequence & Lua Scripting Engine:** Executes automated planting, watering, soil-sensing, and camera-based weed-detection sequences.
+* **Over-The-Air (OTA) Updates:** Self-updating OS and microcontroller firmware managed remotely via web/cloud sync.
+* **Headless Wi-Fi Provisioning:** Boots into a captive configuration portal (`FarmBotConfigurator`) for zero-peripheral setup.
+
+
+
+#### 17. ROS Agriculture (`ros_agriculture`)
+
+* **GitHub:** [https://github.com/ros-agriculture](https://github.com/ros-agriculture)
+* **Overview:** A community-driven collection of Robot Operating System (ROS) packages, hardware drivers, and simulation tools for building autonomous tractors, rovers, and field robots.
+* **Key Features:**
+* **RTK-GPS & IMU Localization:** Provides drivers for high-precision u-blox ZED-F9P receivers (`ublox_f9p`), NTRIP RTCM correction clients (`ntrip_ros`), and sensor fusion (`tractor_localization`).
+* **Waypoint & Row Navigation:** Includes GPS goal servers and autonomous steering controllers for self-driving field vehicles.
+* **Soil Sensor & Simulation Packages:** Offers ROS nodes for reading multi-parameter soil sensors (`miflora_ros`), Gazebo mobile robot simulation, and agricultural synthetic data generation.
+
+
+
+---
+
+### 4. IoT Edge Telemetry & Curated Indexes
+
+#### 18. Farm Data Relay System (FDRS)
+
+* **GitHub:** [https://github.com/timmbogner/Farm-Data-Relay-System](https://github.com/timmbogner/Farm-Data-Relay-System)
+* **Overview:** A lightweight, low-power C/C++ wireless telemetry architecture designed to transport agricultural sensor data across large properties without relying on field-wide Wi-Fi.
+* **Key Features:**
+* **Hybrid Multi-Protocol Mesh:** Bridges short-range, ultra-low-power **ESP-NOW** nodes with long-range **LoRa** repeaters and gateways.
+* **Bi-Directional Sensor & Controller Nodes:** Supports both passive sensor nodes (pushing soil moisture, temperature, or tank levels) and subscriber controller nodes (triggering valves or relays).
+* **Cloud & Edge Backend Bridging:** Gateways translate wireless packets directly to **MQTT**, UART serial, or Ethernet for ingestion into Node-RED, InfluxDB, Grafana, or cloud IoT hubs.
+
+
+
+#### 19. OpenSprinkler Firmware
+
+* **GitHub:** [https://github.com/OpenSprinkler/OpenSprinkler-Firmware](https://github.com/OpenSprinkler/OpenSprinkler-Firmware)
+* **Overview:** Open-source embedded C++ firmware powering smart, web-connected irrigation controllers across ESP8266/ESP32 microcontrollers and Raspberry Pi (OSPi).
+* **Key Features:**
+* **Dynamic Weather & Evapotranspiration (ETo) Adjustments:** Automatically scales watering durations using real-time weather APIs, Zimmerman formulas, and reference ETo calculations.
+* **Analog & Virtual Sensor Expanders:** Supports up to 16 analog sensor channels (soil moisture, flow meters, water pressure) and custom aggregate sensor adjustment curves.
+* **MQTT, REST API & Cloud Relay:** Integrates with Home Assistant, MQTT brokers, IFTTT, and OpenThings Cloud (OTC) for remote scheduling and flow-rate leak alerts.
+* **Sequential & Bundled Zone Scheduling:** Supports concurrent zone bundles, master pump stations, and bounded flash logging.
+
+
+
+#### 20. Awesome Agriculture
+
+* **GitHub:** [https://github.com/brycejohnston/awesome-agriculture](https://github.com/brycejohnston/awesome-agriculture)
+* **Overview:** The most comprehensive, community-maintained curated directory of open-source software, hardware, datasets, and APIs for agriculture, farming, and gardening.
+* **Key Features:**
+* **Categorized Tech Index:** Organizes hundreds of active repositories across Farm Management Systems, Precision Agriculture, Robotics/Drones, Livestock, Hydroponics/Aquaponics, and Supply Chain Traceability.
+* **Scientific & Weather Modeling Links:** Catalogs libraries for crop growth simulation, evapotranspiration (ETo) calculation, soil science, and agro-climatology APIs (such as NASA POWER).
+* **Open Hardware & Standards:** Lists open-source tractor blueprints, weather stations, and agricultural data interoperability standards (such as AgGateway and ISOXML).

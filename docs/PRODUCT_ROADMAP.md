@@ -1,8 +1,23 @@
+# Current product roadmap
+
+21 November 2026: See the [rewritten farmer-first product plan](FARMER_FEATURE_MASTER_PLAN.md), [live feature tracker](FEATURE_TRACKER.md) and [quality gates](QUALITY_GATES.md). These supersede earlier ordering and historical baseline counts below. All 20 repository mappings are preserved in TECHNICAL_FEATURE_CATALOGUE.md.
+
 # FieldSense product assessment and roadmap
 
 Assessment date: 20 November 2026
 
 Status: recorded product direction for ongoing work; individual features below are not implemented unless recorded in [PROGRESS.md](PROGRESS.md).
+
+## Full scope update — 21 November 2026
+
+User requested scope beyond rice. Added a crop-aware record foundation for eight seasonal crops and generic Home wording, while withholding rice guidance for non-rice records. [CROPS_AND_FARM_TYPES.md](CROPS_AND_FARM_TYPES.md) distinguishes shared records from validated crop guidance and future orchard/mixed/livestock models.
+
+User reprioritised Home clarity: replaced the initial dashboard with a purpose-led, sample-aware setup/visit journey, refined by two reviewers. Returning users see actual saved work and history. [HOME_JOURNEY_REVIEW.md](HOME_JOURNEY_REVIEW.md) records decisions and pending acceptance; no visual or farmer validation is implied by implementation.
+
+Farmer help increment: main input labels now have explicit Help icons with short explanations/examples. Field/report/task/map language was simplified, and one expanded input-help flow was visually checked in Chrome. Full mobile/accessibility and farmer/Tamil review remain open; this does not establish the master plan's UX acceptance gates.
+
+The user requested planning all features in the supplied 20-repository breakdown before further implementation. [FARMER_FEATURE_MASTER_PLAN.md](FARMER_FEATURE_MASTER_PLAN.md) is now the authoritative expanded backlog: farmer UX and trustworthy core first; operational records; connected evidence; evaluated predictions; advanced spatial analysis; optional hardware. It defines release/quality gates and distinguishes current implementation from plans. No plan or upstream benchmark establishes absolute prediction accuracy.
+
 
 ## Implementation update — 20 November 2026
 
@@ -118,3 +133,5 @@ Build Level 2 thoroughly before adding more AI or satellite features. Keep the i
 Within Level 2, establish the record model and storage foundation alongside onboarding and permanent history; then build the reporting, task and comparison workflows on those records. Validate each completed increment and update the progress tracker with actual evidence.
 
 The next major improvement must be something a farmer can repeatedly use, rather than another round of dashboard decoration.
+
+21 November: Whole-farm Dashboard implemented for saved photos, scoped growing-area records, visits and job charts. Wheat, flowers, coconut and garden plants added; ongoing planting dates may be unknown. Visual/farmer acceptance and full perennial/mixed models remain pending. See PROGRESS.md.

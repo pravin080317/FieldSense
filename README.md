@@ -1,6 +1,8 @@
 # FieldSense
 
-A local-first React + TypeScript paddy field companion with saved fields, rice seasons, visits and tasks. The starter field is illustrative and located near Salem, Tamil Nadu. Original requirements are preserved in [details.txt](docs/requirements/details.txt) and [prompts.txt](docs/requirements/prompts.txt).
+Current direction: [farmer-first product plan](docs/FARMER_FEATURE_MASTER_PLAN.md) · [feature tracker](docs/FEATURE_TRACKER.md). The tracker separates implementation from device acceptance and farmer validation.
+
+A local-first React + TypeScript farm-record prototype with multiple growing areas, crop plantings, visits and tasks. The starter field is illustrative and located near Salem, Tamil Nadu. Original requirements are preserved in [details.txt](docs/requirements/details.txt) and [prompts.txt](docs/requirements/prompts.txt).
 
 ## Latest increment — 20 November 2026
 
@@ -37,6 +39,11 @@ Validation: 29 tests, build and lint pass. Browser acceptance of these new contr
 Map geometry works without external tiles or an API key. Street tiles require internet and show OpenStreetMap attribution. Sample switching is blocked when sample evidence is linked to a saved task, preserving those references.
 
 ## Product direction and progress
+
+- [Crop coverage, shared tools and future farm types](docs/CROPS_AND_FARM_TYPES.md): seasonal record choices now include rice, maize, millet, groundnut, pulses, cotton, tomato and chilli. These are record-keeping choices, not validated disease-model support. Rice reference images/rules are withheld for other crops. Orchard, mixed-crop and livestock models remain planned.
+
+- [Complete farmer feature master plan: all 20 reference projects, delivery stages and prediction-quality gates](docs/FARMER_FEATURE_MASTER_PLAN.md)
+- [Original user-supplied repository breakdown](docs/references/USER_REPOSITORY_BREAKDOWN.txt)
 
 - [Product assessment, competitor references and roadmap](docs/PRODUCT_ROADMAP.md)
 - [Implementation progress, validation and next steps](docs/PROGRESS.md)
@@ -107,6 +114,12 @@ There is no service worker yet: IndexedDB persistence does not guarantee that a 
 
 ## Modern app experience
 
+Home now explains what a farmer gets: dated visit comparisons, planned work/results, entered-cost summaries and soil/water papers organised by field. Each benefit links to its working tool. A labelled example shows how a field note leads to a job and a return comparison. The illustration is smaller; returning farmers can expand the benefit explanation. Current checks: 65 tests/build/lint pass; final visual/mobile acceptance remains pending. Local changes are unpushed.
+
+Home now explains the app as **a simple diary for your rice field**. New users can add a real field or explicitly try a sample, followed by three short steps. Returning farmers see their field, actual next job and latest saved visit. Add my field opens setup directly; maps/weather/details stay on their own screens. Two-reviewer design decisions and remaining checks: [HOME_JOURNEY_REVIEW.md](docs/HOME_JOURNEY_REVIEW.md). Automated baseline: 63 tests/build/lint pass. Browser/mobile acceptance of the redesign is pending; changes are not pushed yet.
+
+Small **Help** icons beside the main inputs explain what to enter, with everyday examples. Tap/click the icon or focus it with the keyboard and press Enter/Space. Explanations open beside the input; they do not change what you entered. Field setup, reports, visits, tasks and costs use simpler labels, and the map has a How do I use this map? guide. Chrome verified one expanded help flow; full mobile/accessibility acceptance remains pending.
+
 Eight independent screens replace the earlier single-page layout: Overview, My field, Field scouting, Crop health, Soil & weather, Farm diary, Action plan and Case report. Hash routes support browser back/forward and direct links. The overview displays values derived from the current case, not invented crop-health scores or sensor readings.
 
 The overview uses a custom SVG field illustration, consistent icons, a green/cream visual system and responsive cards. Phone layouts switch to horizontal navigation and stacked content. Google Fonts are optional; local sans-serif fallbacks work without the network. The diagrams are bundled code assets.
@@ -137,3 +150,7 @@ Help is available from the sidebar, header and phone help button. It includes se
 The Home paddy image is a bundled AI-generated illustration, explicitly labelled and separate from user photos. Its saved path, exact prompt, tool mode and verification are documented in [UI_ASSETS.md](docs/UI_ASSETS.md).
 
 Chrome desktop and 400-pixel responsive checks covered Home, Record visit, guide expansion, help search and Escape dismissal. Phone hardware camera capture and broader device testing remain pending. This interface increment does not add live data, diagnosis, Tamil translation or new field/task management capabilities.
+
+### Whole-farm dashboard
+
+Open Dashboard from navigation or Home to see growing-area cards, saved photos, crop filters, visit activity and job progress. Twelve crop choices include wheat, flowers and coconut; rice and paddy share one choice. Ongoing coconut/garden plantings can have unknown planting dates. Status describes saved records, not predicted crop health. Desktop/mobile acceptance remains pending.

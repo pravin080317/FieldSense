@@ -8,7 +8,149 @@ Execution plan: [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)
 
 Current maturity: **Level 1 prototype**. Level 2 development has started; Milestone 1 (evidence preservation) is active. Existing visual improvements do not establish field readiness.
 
+## Farmer-first plan rewrite and tracker — 21 November 2026
+
+- Replaced technology-led master plan with farmer journeys, target navigation, appropriate growing-area/season/perennial/batch models, useful algorithms/ML/AI roles, six outcome-based releases and acceptance gates.
+- Added FEATURE_TRACKER.md: 46 stable items, priorities, dependencies, current evidence, remaining acceptance and an ordered next-increment queue. None claimed accepted or field validated; no artificial completion percentage or delivery dates.
+- Preserved the prior plan snapshot, every R01–R20 subfeature in TECHNICAL_FEATURE_CATALOGUE.md, and existing prediction/reliability gates in QUALITY_GATES.md. AGR-01–08 and SRC-01–07 mapped to tracker rows.
+- Added current-authority notices to development plan/roadmap and updated README. Review covers planning only; no application features, ML deployment, git commit or push. Verified relative documentation links and tracker/reference structure; app tests not rerun for prose.
+
 ## Latest implementation status — fields, maps, tasks and themes
+
+### 3-Layer Hybrid AI Engine & In-Browser Computer Vision (HSV + ExG) — 21 November 2026
+
+- Implemented a real, deterministic in-browser Computer Vision leaf stress analyzer (`src/services/leafVision.ts`) using HSV colour segmentation and the Excess Green Vegetation Index (ExG) to quantify healthy green canopy %, yellow chlorosis %, and brown necrosis % on any uploaded or sample photo.
+- Upgraded `FieldAIAdvisor.tsx` into the **3-Layer Hybrid AI Decision Engine** (`Scoring Algorithm` · `Leaf CV Vision` · `Gemini Multimodal`) with 1-click CV scans on Sample Point 1 & Point 2 as well as custom photo uploads.
+- Centered the Home page (`FarmerHome.tsx`) around the 3-layer AI architecture (Computer Vision HSV/ExG + Weighted Multi-Criteria AI Engine + Gemini 2.5 Flash) so AI is the clear core of the project rather than an optional side feature.
+- Validation: **73 tests pass** (added `tests/leafVision.test.ts`), `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Practical pest pressure levels & sample drone orthomosaic — 21 November 2026
+
+- Replaced the literal "How many insects did you count?" prompt in `Record visit` (`App.tsx`) with practical **Visible pest pressure (per 5 hills)** tap pills (`None (0)`, `Few (1–3)`, `Moderate (4–8)`, `Heavy (10+)`) plus an optional exact count stepper, and removed the two redundant inline soil/insect `HelpHint` boxes.
+- Generated a realistic top-down aerial drone orthomosaic (`public/images/samples/salem-drone-orthomosaic.jpg`) and wired it into `FieldImagery.tsx` as a built-in illustrative sample layer for the Salem sample field, aligned to the field's WGS84 bounds with working opacity slider and show/hide controls.
+- Validation: **71 tests pass**, `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Record Visit visual picker & workflow upgrade — 21 November 2026
+
+- Upgraded `Field scouting` (`Record visit`) in `App.tsx` and `Farmer.css`: defaulted directly to the observation form (`step = 1`) instead of an instruction wall, while keeping `Photo guide` 1 click away on Step 1.
+- Replaced bare `1/2/3/4` point buttons with rich 2-column point cards displaying quadrat names and live status dots (amber = changes noted, emerald = checked normal, neutral = unrecorded).
+- Replaced native `<select>` dropdowns for Leaf colour, Soil condition, and Leaf location with color-coded visual tap-card pickers and added a `− / +` stepper for Insect count across Forest, Earth, and Night themes.
+- Validation: **71 tests pass**, `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser mobile/desktop acceptance remains pending.
+
+### My Field architecture & sample data refinement — 21 November 2026
+
+- Audited `My field` end-to-end and eliminated redundant selectors: hid the duplicate top `.workspace-selectors` bar on `My field` (since `FieldControls` already provides full field/season selection) and merged the static `Your crop season` summary directly into the Field Profile card.
+- Added an interactive 5-stage crop lifecycle stepper (`Planting → Vegetative → Reproductive → Harvest → Finished`) right inside the Field Profile so farmers can update growth stage in one click.
+- Improved Salem sample field realism (`farm.ts`): moved illustrative coordinates from downtown Salem (`11.6643, 78.146`) to rural farmland outside Salem (`11.6485, 78.2215`) so the live satellite view shows agricultural plots, and set `irrigationSource` to `Canal + borewell (sample)`.
+- Added direct `Inspect Point 1` / `Inspect Point 2` links on the sample photo gallery and moved the technical `FieldImagery` uploader into a clean collapsible drawer (`Advanced: Georeferenced drone & orthomosaic layers`) to declutter the farmer view.
+- Validation: **71 tests pass**, `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### My Field live satellite map, sample photos & FieldSense AI Assistant — 21 November 2026
+
+- Updated `GeographicMap.tsx` to default to **Live Satellite imagery** (Esri World Imagery) with a 3-way **Satellite / Streets / Offline grid** switcher so the map is no longer blank on load, while gracefully preserving boundaries and check points if offline.
+- Generated two realistic illustrative Tamil Nadu paddy scouting photos (`public/images/samples/point1-yellowing-wet.jpg` and `point3-healthy-paddy.jpg`) and displayed them as a labelled sample gallery in `My field` and as the illustrative cover for the Salem sample field card on `FarmDashboard`.
+- Added **FieldSense AI Assistant** (`src/services/aiAdvisor.ts`, `src/components/FieldAIAdvisor.tsx`) to `My field` with two modes:
+  1. **Local AI Algorithm**: Transparent weighted multi-criteria evidence model (5 features: leaf spread, drainage stress, pest pressure, evidence completeness, overdue actions) computing a 0–100 inspection priority index and feature breakdown with zero API key needed.
+  2. **Gemini API (Live)**: Optional multimodal Gemini 2.5 Flash integration (`VITE_GEMINI_API_KEY` or session-only key input) that sends structured field records + an optional uploaded leaf/field photo for grounded advisory.
+- Validation: **71 tests pass** (added `tests/aiAdvisor.test.ts`), `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser map tile and live Gemini API checks remain pending.
+
+### My Field live satellite map, sample photos & FieldSense AI Assistant — 21 November 2026
+
+- Updated `GeographicMap.tsx` to default to **Live Satellite imagery** (Esri World Imagery) with a 3-way **Satellite / Streets / Offline grid** switcher so the map is no longer blank on load, while gracefully preserving boundaries and check points if offline.
+- Generated two realistic illustrative Tamil Nadu paddy scouting photos (`public/images/samples/point1-yellowing-wet.jpg` and `point3-healthy-paddy.jpg`) and displayed them as a labelled sample gallery in `My field` and as the illustrative cover for the Salem sample field card on `FarmDashboard`.
+- Added **FieldSense AI Assistant** (`src/services/aiAdvisor.ts`, `src/components/FieldAIAdvisor.tsx`) to `My field` with two modes:
+  1. **Local AI Algorithm**: Transparent weighted multi-criteria evidence model (5 features: leaf spread, drainage stress, pest pressure, evidence completeness, overdue actions) computing a 0–100 inspection priority index and feature breakdown with zero API key needed.
+  2. **Gemini API (Live)**: Optional multimodal Gemini 2.5 Flash integration (`VITE_GEMINI_API_KEY` or session-only key input) that sends structured field records + an optional uploaded leaf/field photo for grounded advisory.
+- Validation: **71 tests pass** (added `tests/aiAdvisor.test.ts`), `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser map tile and live Gemini API checks remain pending.
+
+### Modern Analytics Dashboard charts — 21 November 2026
+
+- Upgraded `FarmDashboard.tsx`, `dashboard.ts`, and `Dashboard.css` with zero-dependency vector charts: a 6-week SVG column + trend-line visit chart, an SVG radial work-completion donut chart (`Finished` / `On-track pending` / `Overdue`), a crop-area stacked distribution bar with hectare chips, and latest scouting signal bars (`Normal leaves`, `Leaf colour changes`, `Standing water`, `Insects counted`).
+- Added KPI icon tiles with sub-metrics (mapped hectares, 6-week visits, completed jobs, overdue highlight) and 1-click status filter pills (`All areas`, `Needs attention`, `On track`) across Forest, Earth, and Night themes.
+- Validation: **69 tests pass** (expanded `tests/dashboard.test.ts`), `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Demo Scenarios, Dashboard, My Field & Record Visit clarity — 21 November 2026
+
+- Replaced the bare sample `<select>` with a 3-card interactive Demo Scenario switcher (`App.tsx`, `Farmer.css`) explaining starting evidence, what to change live, and one-click `Inspect causes` for Cases A, B, and C.
+- Enhanced `FarmDashboard.tsx` field cards with growth stage, visit & changed-point counts, and a direct `Concerns` navigation button.
+- Upgraded `My field` with growth-stage badge, coordinates, quick-action buttons (`Record visit`, `Crop concerns`, `Weather & reports`), actual per-point observation summaries (leaf/soil/insects) in **Places to check**, and real entered report counts in **Field records**.
+- Added one-click quick-fill symptom presets in `Record visit` (Step 1) for faster logging and smoother live demos.
+- Validation: **69 tests pass**, `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Live field weather forecast (F29) — 21 November 2026
+
+- Added opt-in 5-day live weather forecast (`src/services/weather.ts`, `src/components/FieldWeather.tsx`) using the public Open-Meteo forecast API for the active field's rounded coordinates, with explicit `credentials: "omit"` and `referrerPolicy: "no-referrer"`.
+- Displays current temperature, humidity, wind speed, 5-day rainfall total, daily high/low/rain cards, explicit Open-Meteo model-grid provenance and fetch time, offline/error fallback without affecting saved records, and a quick "Plan post-rain check" action when 5-day expected rain ≥ 10 mm.
+- Validation: **69 tests pass** (added `tests/weather.test.ts`), `oxlint` passes with 0 warnings/errors, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser live fetch and mobile layout checks remain pending.
+
+### Sleek Crop Concerns / Investigation polish — 21 November 2026
+
+- Upgraded the Crop Concerns / Investigation screen (`App.tsx`, `Farmer.css`) with a dark-emerald summary banner, status-accented cause cards (`supported` / `unresolved` / `insufficient_evidence`), at-a-glance `supporting · missing` evidence count chips, color-coded `Supporting` / `Weakening` / `Missing` evidence badges, refined Next Check callout, and checklist cards across Forest, Earth, and Night themes.
+- Validation: **67 tests pass**, `oxlint` passes with 0 errors/warnings, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Sleek App Shell & Farm Dashboard polish — 21 November 2026
+
+- Aligned the navigation shell (`Farmer.css`) and whole-farm dashboard (`Dashboard.css`) with the new Home aesthetic: deep-emerald gradient sidebar, pill-rounded active states, translucent topbar with status pills, elevated KPI tiles with top accents, rounded visit/job bars, and growing-area cards with translucent crop tags across Forest, Earth, and Night themes.
+- Validation: **67 tests pass**, `oxlint` passes with 0 errors/warnings, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual acceptance remains pending.
+
+### Sleek Home page redesign — 21 November 2026
+
+- Redesigned the Home screen (`FarmerHome.tsx`, `Home.css`, `home.ts`) for a modern, presentation-ready look suited to a college project demo while preserving FieldSense's provenance rules.
+- Added a dark-emerald hero banner with the bundled illustrative paddy field visual (`/images/paddy-field-v2.png`), clearly labelled as an illustrative view, alongside a glassmorphic workflow preview, crop support pills, a 4-step workflow strip, 3 feature pillars, and an interactive Salem sample callout.
+- Upgraded the returning-farmer view with a 3-tile saved-records snapshot (growing areas, jobs due, saved visits), refined priority cards, growing-area cards with crop badges, quick-record pills, and full Forest/Earth/Night theme support.
+- Updated `tests/home.test.ts` to match the `workspace`-based `FarmerHome` interface and verified both first-time and returning journeys.
+- Validation: **67 tests pass**, `oxlint` passes with 0 errors/warnings, and `tsc -b && vite build && node scripts/build-offline.mjs` passes. Real-browser visual inspection across desktop/mobile and themes remains pending (Chrome remote debugging was not active).
+
+### Whole-farm dashboard — 21 November 2026
+
+- Added Dashboard navigation and a Home entry, with growing-area cards, saved photos or clearly empty crop placeholders, crop/name filters, last checks and scoped job actions.
+- Added six-week saved-visit bars and completed/pending/overdue job summaries. Counts use saved records; status labels describe recorded changes or work, never predicted crop health. Examples are explicitly labelled and excluded by default once real areas exist.
+- Added wheat, flowers, coconut and garden plants (12 crop choices total). Rice/paddy stays one crop. Coconut and garden plantings allow unknown planting dates; expected harvest is optional. Existing records and backup schema remain compatible.
+- Dashboard uses the selected planting for the open field and latest-added planting for others, with this scope explained onscreen. Older plantings remain in History.
+- Validation: 67 tests pass, production build and lint pass. Added field/planting isolation, chart totals and unknown-date backup coverage. Final desktop/mobile visual acceptance remains pending. Main bundle size warning remains. Local changes are unpushed.
+- Limits/next: no automatic diagnosis, yield forecast, full orchard harvest model or simultaneous mixed-crop batch model. Next verify dashboard on desktop/mobile and review wording with farmers before field readiness claims.
+
+### Home benefits made explicit — 21 November 2026
+
+- User reported the Home still looked awkward and failed to say what a farmer gains. Inspected the actual existing desktop Home in Chrome: large illustration, generic diary promise and process-first content were the key shortcomings.
+- Replaced generic headline with See crop changes. Keep work on track. Added specific outcomes, supported record crops and a labelled wet-patch → job → return-visit example. Reduced image dominance.
+- Four described links now explain usable outputs: dated crop comparison, jobs/results, recorded spending and test papers. Benefits are immediately visible for sample/new users, collapsible for returning users so actual work remains accessible.
+- Validation: 65 tests/build/lint pass; Home regression updated. Previous Home visually inspected. Post-change screenshot/navigation verification was attempted but blocked by native geometry/foreground mismatch; mobile and final visual acceptance remain pending. Changes are local/unpushed; no new predictive capability claimed.
+
+### Crop-aware record foundation — 21 November 2026
+
+- User questioned rice-only scope. Updated farm-diary positioning and added crop selection for eight crops: rice, maize, millet, groundnut, pulses, cotton, tomato and chilli. Crop belongs to the season so the same land can have different crops over time; old rice records/IDs remain intact.
+- Shared record tools remain available. Displays/exports use actual crop identity; neutral new field names and Crop variety replace rice-only setup labels. Rice references are shown only for rice.
+- Evidence engine now receives crop identity and abstains for non-rice crops, explaining that expert review is needed. No general-purpose disease or agronomic support is implied by adding crop names.
+- [CROPS_AND_FARM_TYPES.md](CROPS_AND_FARM_TYPES.md) defines seasonal, vegetable-batch, perennial/orchard, mixed-planting, nursery and separate livestock/fisheries requirements. Present required-season dates do not establish perennial/mixed-farm support.
+- Validation: **65 tests, build and lint pass**; crop backup/compatibility and non-rice abstention tests added. Real-browser crop setup/guidance isolation remains pending; main bundle warning remains. Changes are local and unpushed.
+
+### Home-first farmer journey — 21 November 2026
+
+- User requested a Home redesign with clear purpose/navigation and two challenging reviewers. Used two reviewer agents: one designed the journey, the other challenged overload/sample confusion; combined recommendations in [HOME_JOURNEY_REVIEW.md](HOME_JOURNEY_REVIEW.md).
+- Replaced the Home dashboard with purpose, sample-aware setup/record actions and three introductory steps. Returning real-field view shows field/season, actual next job/latest visit and small described report/help links. No invented metrics, historical rain or map clutter on Home.
+- Add my field directly opens a fresh setup draft. My field controls precede advanced image tools. Navigation does not reset evidence; selecting a saved real field differs from creating a new one. Form/save and storage behavior are retained.
+- Validation: **63 tests, build and lint pass**. New server-render regression covers sample first-use, sample with real fields, and empty real-field states. Browser inspection attempted but blocked by minimised Chrome/failed target recovery and unavailable browser host. Desktop/mobile/theme/keyboard acceptance remains pending. Main-bundle size warning remains.
+- Home changes, input-help changes and the full master plan are local and unpushed. This is not a prediction or field-readiness milestone.
+
+### Plain-language input help — 21 November 2026
+
+- User requested assistive icons explaining what screens/inputs mean and how to enter information without difficult terminology.
+- Added reusable GuidedField labels with a separate, tap/keyboard-operated Help icon/button, expanded-state announcement, unique input IDs and linked help text. No hover-only instructions or second control nested inside an input label. Help does not submit the form or edit input values.
+- Added contextual examples throughout field/season setup, coordinate/place entry, report measurements/dates, work/cost recording, visit observations, tasks and backups. Zero versus unknown and sample versus real data are explained where relevant.
+- Simplified visible wording: field size, water source, date planted, number/unit on report, image strength and Download field boundary. Advanced image-map terms were replaced with instructions about copying map numbers and checking edges. Necessary printed units/file formats remain accurate.
+- Validation: 62 existing tests pass; build and lint pass. Chrome accessibility tree exposed named Help controls and preserved input names. Visually inspected Next steps, clicked Help for Which marked place?, and observed the explanatory block appear without changing the selected point. Other form toggles, full keyboard/screen-reader use, phone layout and all themes still need acceptance checks. Main-bundle size warning remains.
+- No data-model, record or decision-rule change. This UI increment and the preceding full-feature plan remain local and unpushed.
+
+### Full farmer feature plan — 21 November 2026
+
+- User clarified: add **all** features from the supplied 20-project breakdown to the plan before developing further; prioritise farmer usefulness, simplicity, reliability and prediction quality.
+- Preserved original reference in `docs/references/USER_REPOSITORY_BREAKDOWN.txt`; it is supplied material, not a verified capability catalogue.
+- Added [FARMER_FEATURE_MASTER_PLAN.md](FARMER_FEATURE_MASTER_PLAN.md): all 20 projects and their supplied technical subfeatures mapped to six dependency stages; current subsets and unimplemented integrations distinguished. Includes Tamil/accessibility/low-effort flows, inventory/harvest, provenance, interoperability, data/ML, imagery and optional hardware requirements.
+- Defined model quality gates: labelled scope, local ground truth, leakage prevention, representative held-out fields/seasons, appropriate metrics/calibration/uncertainty, pre-agreed error thresholds, expert review, pilot monitoring and rollback. No absolute-accuracy guarantee or currently validated classifier is claimed.
+- Recommended next stage: verify and improve the existing core before adding more features. Map/location/upload/offline/browser acceptance, data recovery, mobile farmer usability and performance remain open.
+- Spot-checked primary OpenFarm, AgML, Fields2Cover and OpenSprinkler pages; OpenFarm explicitly confirms April 2025 shutdown/archival. Remaining detailed supplied claims still require per-integration verification. Earlier targeted source reviews remain linked.
+- Validation: documentation mapping checked for all IDs R01–R20 and all 20 source headings preserved. No app behavior changed; tests not rerun for prose. Last app baseline remains 62 tests/build/lint passing with documented browser and bundle-size limits. Changes are local; no push performed.
 
 ### Place search and map centre selection — 21 November 2026
 
@@ -219,3 +361,16 @@ Finish the remaining migration/error/two-tab browser recovery checks, then conti
 
 - User authorised committing and pushing the map Locate me, place search and click-to-set centre increment to main. Includes source, tests, help and roadmap/progress updates.
 - Validation: 62 tests, production build and lint pass; live Salem place-search endpoint smoke passed previously. Browser/GPS acceptance and bundle-size warning remain pending.
+
+
+### Agrii reference review — 21 November 2026
+
+- Reviewed public Tools/Resources, seed, two harvest-loss calculator pages and Contour description; saved sources, comparison and AGR-01–08 acceptance criteria in AGRII_REVIEW.md and linked master backlog.
+- Prioritised seed quantity, spacing and harvest/sales around existing field records. Weather/satellite and crop-specific loss tools remain later stages. Break Crop Calculator correctly identified as harvest-loss tooling, not rotation planning.
+- Documentation-only increment; no new integrations, calculator execution or signed-in product verification claimed. No app tests rerun for prose changes. Changes local/unpushed.
+
+### Local sources reviewed — 21 November 2026
+
+- Inventoried all eight PDFs (359 PDF pages) in docs/sources, extracted text, reviewed contents/relevant sections and visually inspected three representative pages. Review scope is not a cover-to-cover agronomic audit.
+- Saved SOURCE_DOCUMENT_REVIEW.md with per-document page anchors, current-versus-planned distinctions, SRC-01–07 acceptance requirements and delivery order. Linked master plan. No app or supplied PDF changes.
+- Identified UK/older commercial material and crop-specific models; no automatic transfer of recommendations, images or claimed results into local farmer guidance. Documentation only, so app tests were not rerun. Local/unpushed.

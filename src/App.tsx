@@ -1,3 +1,8 @@
+import { cropName } from "./data/crops";
+import { FarmerHome } from "./components/FarmerHome";
+import { GuidedField } from "./components/GuidedField";
+import { FieldWeather } from "./components/FieldWeather";
+import { FieldAIAdvisor } from "./components/FieldAIAdvisor";
 import { ReportRecords } from "./components/ReportRecords";
 import { OfflineStatus } from "./components/OfflineStatus";
 import { VisitComparison } from "./components/VisitComparison";
@@ -27,7 +32,7 @@ import {
   historyNewestFirst,
 } from "./services/workspace";
 import { Icon } from "./components/Visuals";
-import { HelpCenter, HelpHint, PhotoGuide } from "./components/Help";
+import { HelpCenter, PhotoGuide } from "./components/Help";
 import "./App.css";
 import { FieldControls } from "./components/FieldControls";
 import { TaskBoard } from "./components/TaskBoard";
@@ -42,15 +47,19 @@ import {
 } from "./services/farm";
 import "./Farmer.css";
 import "./Controls.css";
+import "./Home.css";
+import "./Dashboard.css";
 const RiceReferenceLibrary = lazy(
   () => import("./components/RiceReferenceLibrary"),
 );
+const FarmDashboard = lazy(() => import("./components/FarmDashboard"));
 const FieldImagery = lazy(() => import("./components/FieldImagery"));
 const ActivityLedger = lazy(() => import("./components/ActivityLedger"));
 const cases = { A: scenarioA, B: scenarioB, C: scenarioC };
 type Case = keyof typeof cases;
 const pages = [
   ["Overview", "home"],
+  ["Farm dashboard", "chart"],
   ["My field", "field"],
   ["Field scouting", "scan"],
   ["Crop health", "leaf"],
@@ -62,6 +71,7 @@ const pages = [
 type Page = (typeof pages)[number][0];
 const pageLabels: Record<Page, string> = {
   Overview: "Home",
+  "Farm dashboard": "Dashboard",
   "My field": "My field",
   "Field scouting": "Record visit",
   "Crop health": "Crop concerns",
@@ -74,6 +84,7 @@ const mainPages = pages
   .filter(([p]) =>
     [
       "Overview",
+      "Farm dashboard",
       "My field",
       "Field scouting",
       "Action plan",
@@ -84,6 +95,7 @@ const mainPages = pages
     ([a], [b]) =>
       [
         "Overview",
+        "Farm dashboard",
         "My field",
         "Field scouting",
         "Action plan",
@@ -91,6 +103,7 @@ const mainPages = pages
       ].indexOf(a) -
       [
         "Overview",
+        "Farm dashboard",
         "My field",
         "Field scouting",
         "Action plan",
@@ -222,6 +235,8 @@ function Panel({
 }
 function FarmApp({ initial }: { initial: Workspace }) {
   const [page, setPage] = useState<Page>(pageFromHash);
+  const [autoAddField, setAutoAddField] = useState(false);
+  const [setupRequest, setSetupRequest] = useState(0);
   const [scenario, setScenario] = useState<Case>(initial?.scenario || "A");
   const [history, setHistory] = useState<Observation[]>(
     initial?.obs || scenarioA.observations,
@@ -252,14 +267,21 @@ function FarmApp({ initial }: { initial: Workspace }) {
     name: activeField.name,
     location: activeField.location,
     areaHectares: activeField.areaHectares,
-    cropType: `Rice (${activeSeason.variety})`,
+    cropId: activeSeason.crop,
+    cropType: `${cropName(activeSeason.crop)} (${activeSeason.variety})`,
     season: {
       id: activeSeason.id,
       fieldId: activeField.id,
-      year: Number(activeSeason.sowingDate.slice(0, 4)),
+      year: activeSeason.sowingDate
+        ? Number(activeSeason.sowingDate.slice(0, 4))
+        : undefined,
       season: activeField.isIllustrative ? "kharif" : "custom",
-      sowingDate: new Date(activeSeason.sowingDate),
-      expectedHarvestDate: new Date(activeSeason.expectedHarvestDate),
+      sowingDate: activeSeason.sowingDate
+        ? new Date(activeSeason.sowingDate)
+        : null,
+      expectedHarvestDate: activeSeason.expectedHarvestDate
+        ? new Date(activeSeason.expectedHarvestDate)
+        : null,
     },
   };
   const scoutingPoints = fieldPoints(activeField);
@@ -363,9 +385,10 @@ function FarmApp({ initial }: { initial: Workspace }) {
   );
 
   const [demoOpen, setDemoOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
   const [photoGuideOpen, setPhotoGuideOpen] = useState(false);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<Observation | null>(null);
   const [operation, setOperation] = useState("Irrigation");
   const [operationDate, setOperationDate] = useState(localDate());
@@ -413,6 +436,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
   }, [workspace, lastSaved]);
   useEffect(() => {
     const onRoute = () => {
+      if (pageFromHash() !== "My field") setAutoAddField(false);
       setPage(pageFromHash());
       window.scrollTo(0, 0);
     };
@@ -461,16 +485,19 @@ function FarmApp({ initial }: { initial: Workspace }) {
       new Date(reviewDate + "T23:59:59").getTime() - o.observedAt.getTime() <=
       14 * 86400000,
   );
-  const affected = recentObs
-    .filter((o) => o.leafColor && o.leafColor !== "normal")
-    .map((o) => o.scoutingPointId || "");
   const supported = analysis.explanations.filter(
     (e) => e.status === "supported",
   );
   const selected = obs.find((o) => o.scoutingPointId === point);
   const current = draft || selected;
   const progress = new Set(recentObs.map((o) => o.scoutingPointId)).size;
+  function addMyField() {
+    setAutoAddField(true);
+    setSetupRequest((value) => value + 1);
+    go("My field");
+  }
   function go(p: Page) {
+    if (p !== "My field") setAutoAddField(false);
     window.location.hash = routeFor(p);
     setPage(p);
     setMessage("");
@@ -797,30 +824,43 @@ function FarmApp({ initial }: { initial: Workspace }) {
   const explanations = (
     <div className="explanation-list">
       {analysis.explanations.map((e, i) => (
-        <article className="explanation" key={e.id}>
+        <article
+          className="explanation"
+          data-status={e.status}
+          key={e.id}
+        >
           <div className="explanation-top">
             <span className="rank">0{i + 1}</span>
             <div>
               <h3>{farmerChecks[e.id]?.title || e.hypothesis}</h3>
-              <span
-                className={`pill ${e.status === "supported" ? "amber" : e.status === "unresolved" ? "blue" : "neutral"}`}
-              >
-                {e.status === "supported"
-                  ? "Worth checking first"
-                  : e.status === "unresolved"
-                    ? "Still possible"
-                    : "Not enough information"}
-              </span>
+              <div className="explanation-badges">
+                <span
+                  className={`pill ${e.status === "supported" ? "amber" : e.status === "unresolved" ? "blue" : "neutral"}`}
+                >
+                  {e.status === "supported"
+                    ? "Worth checking first"
+                    : e.status === "unresolved"
+                      ? "Still possible"
+                      : "Not enough information"}
+                </span>
+                <span className="evidence-chip">
+                  {e.supportingEvidence.length} supporting ·{" "}
+                  {e.missingEvidence.length} missing
+                </span>
+              </div>
             </div>
-            <Icon
-              name={
-                e.id === "waterlogging"
-                  ? "drop"
-                  : e.id === "pest"
-                    ? "bug"
-                    : "leaf"
-              }
-            />
+            <span className="explanation-icon">
+              <Icon
+                name={
+                  e.id === "waterlogging"
+                    ? "drop"
+                    : e.id === "pest"
+                      ? "bug"
+                      : "leaf"
+                }
+                size={19}
+              />
+            </span>
           </div>
           <p className="explanation-next">
             {farmerChecks[e.id]?.check || e.nextCheck}
@@ -830,16 +870,27 @@ function FarmApp({ initial }: { initial: Workspace }) {
             <div className="evidence-content">
               <h4>What your records show</h4>
               {e.supportingEvidence.length ? (
-                e.supportingEvidence.map((s) => <p key={s}>{s}</p>)
+                e.supportingEvidence.map((s) => (
+                  <p className="evidence-item evidence-for" key={s}>
+                    <span>Supporting</span>
+                    {s}
+                  </p>
+                ))
               ) : (
                 <p>No matching signs have been recorded yet.</p>
               )}
               {e.weakeningEvidence.map((s) => (
-                <p key={s}>Weakening: {s}</p>
+                <p className="evidence-item evidence-against" key={s}>
+                  <span>Weakening</span>
+                  {s}
+                </p>
               ))}
               <h4>What we still need</h4>
               {e.missingEvidence.map((s) => (
-                <p key={s}>{s}</p>
+                <p className="evidence-item evidence-missing" key={s}>
+                  <span>Missing</span>
+                  {s}
+                </p>
               ))}
             </div>
           </details>
@@ -849,6 +900,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
   );
   const titles: Record<Page, string> = {
     Overview: "Your field at a glance.",
+    "Farm dashboard": "Your whole farm, in one view.",
     "My field": "A closer look at your field.",
     "Field scouting": "What do you see in your field?",
     "Crop health": "Let’s understand the changes.",
@@ -858,6 +910,8 @@ function FarmApp({ initial }: { initial: Workspace }) {
     "Case report": "A clear record to share with an expert.",
   };
   const descriptions: Record<Page, string> = {
+    "Farm dashboard":
+      "See each crop area, your recent visits and the jobs that need attention.",
     Overview:
       "Your latest records, what needs checking, and a simple next step.",
     "My field":
@@ -876,7 +930,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
       "Bring your photos, notes and unanswered questions to an agronomist or extension worker.",
   };
   return (
-    <div className="app">
+    <div className={`app ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <a
         className="skip-link"
         href="#content"
@@ -887,14 +941,25 @@ function FarmApp({ initial }: { initial: Workspace }) {
       >
         Skip to content
       </a>
-      <aside className="sidebar">
-        <button className="brand" onClick={() => go("Overview")}>
-          <span className="brand-symbol">
-            <Icon name="leaf" size={24} />
-          </span>
-          field<span>sense</span>
-          <i />
-        </button>
+      <aside className="sidebar" aria-hidden={!sidebarOpen || undefined}>
+        <div className="sidebar-brand-row">
+          <button className="brand" onClick={() => go("Overview")}>
+            <span className="brand-symbol">
+              <Icon name="leaf" size={22} />
+            </span>
+            field<span>sense</span>
+            <i />
+          </button>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            aria-label="Hide sidebar"
+            title="Hide sidebar"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Icon name="chevron" size={16} />
+          </button>
+        </div>
         <div className="workspace">
           <span className="workspace-icon">
             <Icon name="field" />
@@ -953,7 +1018,9 @@ function FarmApp({ initial }: { initial: Workspace }) {
         <div className="sidebar-bottom">
           <div className="season-mini">
             <span className="green-dot" /> {activeSeason.name.toUpperCase()}
-            <p>{activeSeason.variety} rice</p>
+            <p>
+              {cropName(activeSeason.crop)} · {activeSeason.variety}
+            </p>
             <div className="mini-progress">
               <i />
             </div>
@@ -978,9 +1045,34 @@ function FarmApp({ initial }: { initial: Workspace }) {
       <div className="main-shell">
         <OfflineStatus />
         <header className="topbar">
-          <div className="breadcrumb">
-            Workspace <Icon name="chevron" size={13} />
-            <strong>{pageLabels[page]}</strong>
+          <div className="topbar-left">
+            <button
+              type="button"
+              className="sidebar-toggle-btn"
+              aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              aria-expanded={sidebarOpen}
+              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="3" />
+                <line x1="9" y1="4" x2="9" y2="20" />
+              </svg>
+            </button>
+            <div className="breadcrumb">
+              Workspace <Icon name="chevron" size={13} />
+              <strong>{pageLabels[page]}</strong>
+            </div>
           </div>
           <div className="topbar-right">
             <span className="local-status">
@@ -1037,483 +1129,265 @@ function FarmApp({ initial }: { initial: Workspace }) {
           </div>
         </header>
         <main id="content" tabIndex={-1}>
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">
-                {page === "Overview"
-                  ? "YOUR FIELD COMPANION"
-                  : "SALEM FARM · PADDY"}
-              </p>
-              <h1>{titles[page]}</h1>
-              <p className="page-description">{descriptions[page]}</p>
-            </div>
-            <button
-              className={page === "Overview" ? "primary" : "secondary"}
-              onClick={() => {
-                if (page === "Case report") download();
-                else if (page === "Field scouting")
-                  setPhotoGuideOpen((v) => !v);
-                else if (page === "Soil & weather" || page === "Action plan")
-                  setHelpOpen(true);
-                else go("Field scouting");
-              }}
-            >
-              <Icon
-                name={
-                  page === "Case report"
-                    ? "down"
-                    : page === "Field scouting"
-                      ? "camera"
-                      : page === "Soil & weather" || page === "Action plan"
-                        ? "help"
-                        : "plus"
-                }
-                size={17}
-              />
-              {page === "Case report"
-                ? "Download report"
-                : page === "Field scouting"
-                  ? "Photo guide"
-                  : page === "Soil & weather" || page === "Action plan"
-                    ? "Help with this page"
-                    : "Record a visit"}
-            </button>
-          </div>
-          <div className="sample-strip">
-            <span className="sample-tag">
-              {activeField.isIllustrative ? "SAMPLE FIELD" : "YOUR FIELD"}
-            </span>
-            <span>
-              {activeField.isIllustrative ? "Sample field" : "Your field"} ·
-              records shown up to {reviewDate}
-            </span>
-            <span className="sample-tail">
-              {currentHistory.length} records ·{" "}
-              {
-                visits.filter(
-                  (v) =>
-                    v.fieldId === activeField.id &&
-                    v.seasonId === activeSeason.id,
-                ).length
-              }{" "}
-              visits
-            </span>
-          </div>
-          {demoOpen && (
-            <section className="demo-controls">
+          {page !== "Overview" && (
+            <div className="page-heading">
               <div>
-                <h3>Explore how evidence changes a decision</h3>
-                <p>
-                  Switching refreshes only prepared sample observations. Your
-                  entered visits, fields and tasks are kept. Download a backup
-                  before making major changes.
-                </p>
+                <p className="eyebrow">SALEM FARM · FIELD RECORDS</p>
+                <h1>{titles[page]}</h1>
+                <p className="page-description">{descriptions[page]}</p>
               </div>
-              <label>
-                Sample case
-                <select
-                  value={scenario}
-                  onChange={(e) => reset(e.target.value as Case)}
-                >
-                  <option value="A">A · Wet low patch after rain</option>
-                  <option value="B">B · Yellowing and nutrition</option>
-                  <option value="C">C · Leaf damage and insects</option>
-                </select>
-              </label>
-              <button onClick={() => reset(scenario)}>Reset sample case</button>
               <button
-                aria-label="Close demo controls"
-                onClick={() => setDemoOpen(false)}
-              >
-                ×
-              </button>
-            </section>
-          )}
-          <div className="workspace-selectors">
-            <label>
-              Field
-              <select
-                aria-label="Active field"
-                value={activeField.id}
-                onChange={(e) => {
-                  const next = seasons
-                    .filter((s) => s.fieldId === e.target.value)
-                    .at(-1)!;
-                  selectScope(e.target.value, next.id);
+                className="secondary"
+                onClick={() => {
+                  if (page === "Farm dashboard") addMyField();
+                  else if (page === "Case report") download();
+                  else if (page === "Field scouting")
+                    setPhotoGuideOpen((v) => !v);
+                  else if (page === "Soil & weather" || page === "Action plan")
+                    setHelpOpen(true);
+                  else go("Field scouting");
                 }}
               >
-                {fields.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                    {f.isIllustrative ? " · sample" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Season
-              <select
-                aria-label="Active season"
-                value={activeSeason.id}
-                onChange={(e) => selectScope(activeField.id, e.target.value)}
-              >
-                {seasons
-                  .filter((s) => s.fieldId === activeField.id)
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <button onClick={() => go("My field")}>
-              <Icon name="plus" size={16} /> Manage fields
-            </button>
-          </div>
-          {page === "Overview" && (
-            <>
-              <section className="overview-hero">
-                <div className="hero-copy">
-                  <span className="hero-tag">
-                    <span className="green-dot" /> SMALL CHECKS. BETTER FIELD
-                    RECORDS.
-                  </span>
-                  <h2>
-                    Get to know your crop.
-                    <br />
-                    One visit at a time.
-                  </h2>
+                <Icon
+                  name={
+                    page === "Case report"
+                      ? "down"
+                      : page === "Field scouting"
+                        ? "camera"
+                        : page === "Soil & weather" || page === "Action plan"
+                          ? "help"
+                          : "plus"
+                  }
+                  size={17}
+                />
+                {page === "Case report"
+                  ? "Download report"
+                  : page === "Field scouting"
+                    ? "Photo guide"
+                    : page === "Soil & weather" || page === "Action plan"
+                      ? "Help with this page"
+                      : page === "Farm dashboard"
+                        ? "Add a growing area"
+                        : "Record a visit"}
+              </button>
+            </div>
+          )}
+          {page !== "Overview" && page !== "Farm dashboard" && (
+            <div className="sample-strip">
+              <span className="sample-tag">
+                {activeField.isIllustrative ? "SAMPLE FIELD" : "YOUR FIELD"}
+              </span>
+              <span>
+                {activeField.isIllustrative ? "Sample field" : "Your field"} ·
+                records shown up to {reviewDate}
+              </span>
+              <span className="sample-tail">
+                {currentHistory.length} records ·{" "}
+                {
+                  visits.filter(
+                    (v) =>
+                      v.fieldId === activeField.id &&
+                      v.seasonId === activeSeason.id,
+                  ).length
+                }{" "}
+                visits
+              </span>
+            </div>
+          )}
+          {demoOpen && (
+            <section className="demo-controls demo-panel-rich">
+              <div className="demo-panel-head">
+                <div>
+                  <span className="eyebrow">INTERACTIVE PANEL DEMO</span>
+                  <h3>Explore how field evidence changes the conclusion</h3>
                   <p>
-                    Notice yellow leaves, insects or a wet patch? Record what
-                    you see. We’ll help you choose what to check next.
+                    Choose a prepared Salem paddy case below, then change one
+                    observation or soil record live to watch the evidence engine
+                    re-rank causes. Your own saved fields and tasks stay
+                    untouched.
                   </p>
-                  <div className="hero-actions">
-                    <button onClick={() => go("Field scouting")}>
-                      <Icon name="camera" size={17} /> Record a visit{" "}
-                      <Icon name="arrow" size={16} />
-                    </button>
-                    <button
-                      className="hero-help-action"
-                      onClick={() => setHelpOpen(true)}
-                    >
-                      How does it work?
-                    </button>
-                  </div>
-                  <div className="hero-bottom">
-                    <Icon name="pin" size={14} /> {activeField.locality}{" "}
-                    <span>•</span> {activeField.areaHectares} hectares
-                  </div>
                 </div>
-                <div className="hero-landscape">
-                  <img
-                    className="paddy-hero-photo"
-                    src={`${import.meta.env.BASE_URL}images/paddy-field-v2.png`}
-                    alt="Illustrative rice field with green leaves and rice panicles in warm morning light"
-                    fetchPriority="high"
-                  />
-                  <span className="illustrative-image-label">
-                    AI-generated illustration · not a field photo
-                  </span>
-                  <div className="hero-float">
-                    <span className="icon-box">
-                      <Icon name="leaf" />
-                    </span>
-                    <div>
-                      <strong>{activeSeason.variety} rice</strong>
-                      <small>
-                        {activeField.name} ·{" "}
-                        {activeField.isIllustrative ? "sample" : "your field"}
-                      </small>
-                    </div>
-                  </div>
+                <div className="demo-panel-head-actions">
+                  <button onClick={() => reset(scenario)}>
+                    Reset Case {scenario}
+                  </button>
+                  <button
+                    aria-label="Close demo controls"
+                    onClick={() => setDemoOpen(false)}
+                  >
+                    ×
+                  </button>
                 </div>
-              </section>
-              <div className="stats-grid">
-                {[
+              </div>
+              <div className="demo-scenarios-grid">
+                {(
                   [
-                    "field",
-                    "Field size",
-                    String(activeField.areaHectares),
-                    "hectares",
-                    `${fields.length} saved field${fields.length === 1 ? "" : "s"}`,
-                  ],
-                  [
-                    "scan",
-                    "Places checked",
-                    `${progress}/4`,
-                    "points",
-                    "Recorded in the last 14 days of this case",
-                  ],
-                  [
-                    "leaf",
-                    "Places with changes",
-                    String(affected.length),
-                    "points",
-                    "From your recent field notes",
-                  ],
-                  [
-                    "calendar",
-                    "Next visit",
-                    String(pendingTasks.length),
-                    "scheduled",
-                    follow ? follow.date : "Plan your next field check",
-                  ],
-                ].map(([icon, label, value, unit, note]) => (
-                  <article className="stat-card" key={label}>
-                    <div className="stat-label">
-                      {label}
-                      <span className="stat-icon">
-                        <Icon name={icon} size={19} />
-                      </span>
+                    {
+                      id: "A" as Case,
+                      tag: "CASE A · WATERLOGGING",
+                      title: "Wet low patch after heavy rain",
+                      evidence:
+                        "Yellowing clustered in the low corner with standing water and 42 mm district rainfall; root check still missing.",
+                      tryLive:
+                        "Change soil condition to damp/dry in Record visit to see waterlogging drop.",
+                    },
+                    {
+                      id: "B" as Case,
+                      tag: "CASE B · NUTRIENT STRESS",
+                      title: "Widespread yellowing + soil report",
+                      evidence:
+                        "Yellowing across multiple points with a recent low-nitrogen lab report and no convincing leaf-spot lesions.",
+                      tryLive:
+                        "Switch soil report relevance to 'wrong field' or 'stale' in Soil & rain.",
+                    },
+                    {
+                      id: "C" as Case,
+                      tag: "CASE C · PEST PRESSURE",
+                      title: "Leaf feeding damage + rising insect count",
+                      evidence:
+                        "Visible insects and leaf holes recorded at two scouting points; kept distinct from fungal disease.",
+                      tryLive:
+                        "Lower pest count to 0 at Point 1 & 2 and watch pest suspicion recede.",
+                    },
+                  ] as const
+                ).map((item) => (
+                  <article
+                    key={item.id}
+                    className={`demo-scenario-card ${scenario === item.id ? "active" : ""}`}
+                  >
+                    <span className="demo-case-tag">{item.tag}</span>
+                    <h4>{item.title}</h4>
+                    <p>{item.evidence}</p>
+                    <small>
+                      <strong>Try live:</strong> {item.tryLive}
+                    </small>
+                    <div className="demo-card-btns">
+                      <button
+                        className={scenario === item.id ? "primary" : ""}
+                        onClick={() => {
+                          selectScope("field-01", "season-2024-k");
+                          reset(item.id);
+                        }}
+                      >
+                        {scenario === item.id ? "Active case" : `Load Case ${item.id}`}
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          selectScope("field-01", "season-2024-k");
+                          reset(item.id);
+                          setDemoOpen(false);
+                          go("Crop health");
+                        }}
+                      >
+                        Inspect causes <Icon name="arrow" size={14} />
+                      </button>
                     </div>
-                    <strong>
-                      {value}
-                      <small>{unit}</small>
-                    </strong>
-                    <p>{note}</p>
                   </article>
                 ))}
               </div>
-              <div className="dashboard-grid">
-                <Panel
-                  title="Where to look"
-                  detail={`${activeField.name} · ${activeField.areaHectares} ha`}
-                  action={
-                    <button
-                      className="text-button"
-                      onClick={() => go("My field")}
-                    >
-                      View field <Icon name="arrow" size={15} />
-                    </button>
-                  }
-                >
-                  {map}
-                  <div className="field-card-foot">
-                    <span>
-                      <i className="green-dot" /> {progress} places checked
-                    </span>
-                    <span
-                      className={`pill ${affected.length ? "amber" : "neutral"}`}
-                    >
-                      {affected.length
-                        ? "Changes to check"
-                        : progress
-                          ? "Records available"
-                          : "No recent visits"}
-                    </span>
-                  </div>
-                </Panel>
-                <Panel
-                  title="Your next steps"
-                  detail="A closer look can make the picture clearer"
-                >
-                  {nextTask}
-                  <button
-                    className="task-row"
-                    onClick={() => go("Soil & weather")}
-                  >
-                    <span className="icon-box blue">
-                      <Icon name="drop" />
-                    </span>
-                    <span>
-                      <strong>Review soil & water records</strong>
-                      <small>
-                        {soil.length
-                          ? "Check report date and relevance"
-                          : "Soil report missing"}{" "}
-                        · Water test not recorded
-                      </small>
-                    </span>
-                    <Icon name="chevron" size={16} />
-                  </button>
-                  <button
-                    className="task-row"
-                    onClick={() => go("Action plan")}
-                  >
-                    <span className="icon-box purple">
-                      <Icon name="calendar" />
-                    </span>
-                    <span>
-                      <strong>
-                        {follow
-                          ? "Return to the same points"
-                          : "Plan a follow-up visit"}
-                      </strong>
-                      <small>
-                        {follow
-                          ? `Scheduled for ${follow.date}`
-                          : "See whether your next check helped"}
-                      </small>
-                    </span>
-                    <Icon name="chevron" size={16} />
-                  </button>
-                </Panel>
-              </div>
-              <div className="dashboard-grid lower-grid">
-                <Panel
-                  title="Your latest field notes"
-                  detail="See what changed and when"
-                  action={
-                    <button
-                      className="text-button"
-                      onClick={() => go("Farm diary")}
-                    >
-                      Farm diary <Icon name="arrow" size={15} />
-                    </button>
-                  }
-                >
-                  <div className="observation-table">
-                    {obs.slice(0, 3).map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          selectPoint(o.scoutingPointId || "pt-1");
-                          go("Field scouting");
-                        }}
-                      >
-                        <span
-                          className={`point-number ${o.leafColor === "normal" ? "healthy" : ""}`}
-                        >
-                          {o.scoutingPointId?.slice(-1)}
-                        </span>
-                        <span>
-                          <strong>
-                            {o.leafColor === "normal"
-                              ? "Normal leaf appearance"
-                              : o.leafColor === "browning"
-                                ? "Leaf damage reported"
-                                : "Yellowing leaves reported"}
-                          </strong>
-                          <small>
-                            {
-                              scoutingPoints.find(
-                                (p) => p.id === o.scoutingPointId,
-                              )?.quadrat
-                            }{" "}
-                            · {o.observedAt.toISOString().slice(0, 10)}
-                          </small>
-                        </span>
-                        <span className="pill neutral">
-                          {o.isIllustrative ? "Sample" : "User input"}
-                        </span>
-                        <Icon name="chevron" size={15} />
-                      </button>
-                    ))}
-                  </div>
-                </Panel>
-                <Panel
-                  title="Rainfall near your field"
-                  detail={
-                    weather.length
-                      ? "District sample · 17 Oct 2024"
-                      : "No weather feed connected"
-                  }
-                >
-                  <div className="weather-summary">
-                    <span className="weather-symbol">
-                      <Icon name="cloud" size={50} />
-                    </span>
-                    <div>
-                      <strong>
-                        {weather.length ? rain : "—"}
-                        <small>{weather.length ? " mm" : ""}</small>
-                      </strong>
-                      <p>
-                        {weather.length
-                          ? "Rain recorded across the district"
-                          : "No rainfall measurement for this field"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="muted">
-                    Rainfall tells you about the wider area. Look at the soil in
-                    your own field before deciding what to do.
-                  </p>
-                  <button
-                    className="text-button"
-                    onClick={() => go("Soil & weather")}
-                  >
-                    Review field conditions <Icon name="arrow" size={15} />
-                  </button>
-                </Panel>
-              </div>
-            </>
-          )}
-          {page === "Overview" && (
-            <section className="learn-section">
-              <div className="section-intro">
-                <div>
-                  <span className="eyebrow">A LITTLE HELP GOES A LONG WAY</span>
-                  <h2>Make your next field visit count.</h2>
-                  <p>
-                    No special equipment needed. Start with what you can see.
-                  </p>
-                </div>
-                <button
-                  className="text-button"
-                  onClick={() => setHelpOpen(true)}
-                >
-                  All help & guides <Icon name="arrow" size={16} />
-                </button>
-              </div>
-              <div className="learning-cards">
-                <button
-                  onClick={() => {
-                    setPhotoGuideOpen(true);
-                    go("Field scouting");
-                  }}
-                >
-                  <div className="learning-visual">
-                    <Icon name="camera" size={37} />
-                    <span>01</span>
-                  </div>
-                  <h3>Take two useful photos</h3>
-                  <p>A whole plant and a close-up help show what changed.</p>
-                  <span className="learn-link">
-                    See the photo guide <Icon name="arrow" size={15} />
-                  </span>
-                </button>
-                <button onClick={() => go("Farm diary")}>
-                  <div className="learning-visual warm">
-                    <Icon name="book" size={37} />
-                    <span>02</span>
-                  </div>
-                  <h3>Keep a simple field diary</h3>
-                  <p>Note irrigation, field work and the things you notice.</p>
-                  <span className="learn-link">
-                    Open your history <Icon name="arrow" size={15} />
-                  </span>
-                </button>
-                <button onClick={() => go("Action plan")}>
-                  <div className="learning-visual blue">
-                    <Icon name="calendar" size={37} />
-                    <span>03</span>
-                  </div>
-                  <h3>Return to the same plants</h3>
-                  <p>
-                    Use similar photos to record better, the same, or worse.
-                  </p>
-                  <span className="learn-link">
-                    Plan your next visit <Icon name="arrow" size={15} />
-                  </span>
-                </button>
-              </div>
             </section>
           )}
-          {page === "My field" && (
-            <Suspense fallback={<p>Opening field imagery…</p>}>
-              <FieldImagery
-                key={activeSeason.id}
-                field={activeField}
-                season={activeSeason}
-                records={imagery}
-                onSave={(record) => setImagery((prev) => [...prev, record])}
+          {page !== "Overview" &&
+            page !== "Farm dashboard" &&
+            page !== "My field" && (
+            <div className="workspace-selectors">
+              <GuidedField
+                label="Choose your field"
+                help="Choose the field you are working in. Its visits, tasks and reports will be shown. Records from other fields stay separate."
+              >
+                <select
+                  aria-label="Active field"
+                  value={activeField.id}
+                  onChange={(e) => {
+                    const next = seasons
+                      .filter((s) => s.fieldId === e.target.value)
+                      .at(-1)!;
+                    selectScope(e.target.value, next.id);
+                  }}
+                >
+                  {fields.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                      {f.isIllustrative ? " · sample" : ""}
+                    </option>
+                  ))}
+                </select>
+              </GuidedField>
+              <GuidedField
+                label="Choose your crop season"
+                help="Choose the growing period you want to work on. You can return to older seasons without deleting their records."
+              >
+                <select
+                  aria-label="Active season"
+                  value={activeSeason.id}
+                  onChange={(e) => selectScope(activeField.id, e.target.value)}
+                >
+                  {seasons
+                    .filter((s) => s.fieldId === activeField.id)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                </select>
+              </GuidedField>
+              <button onClick={() => go("My field")}>
+                <Icon name="plus" size={16} /> Manage fields
+              </button>
+            </div>
+          )}
+          {page === "Farm dashboard" && (
+            <Suspense fallback={<p>Opening farm dashboard…</p>}>
+              <FarmDashboard
+                workspace={workspace}
+                onAdd={addMyField}
+                onOpen={(fieldId, seasonId, destination) => {
+                  selectScope(fieldId, seasonId);
+                  go(
+                    destination === "field"
+                      ? "My field"
+                      : destination === "visit"
+                        ? "Field scouting"
+                        : destination === "concerns"
+                          ? "Crop health"
+                          : "Action plan",
+                  );
+                }}
               />
             </Suspense>
+          )}
+          {page === "Overview" && (
+            <FarmerHome
+              workspace={workspace}
+              onAddField={addMyField}
+              onOpen={(fieldId, seasonId, destination) => {
+                selectScope(fieldId, seasonId);
+                go(
+                  destination === "field"
+                    ? "My field"
+                    : destination === "record"
+                      ? "Field scouting"
+                      : destination === "tasks"
+                        ? "Action plan"
+                        : destination === "reports"
+                          ? "Soil & weather"
+                          : "Farm diary",
+                );
+              }}
+              onSample={() => {
+                selectScope("field-01", "season-2024-k");
+                go("My field");
+              }}
+              onHelp={() => setHelpOpen(true)}
+              onDashboard={() => go("Farm dashboard")}
+            />
           )}
           {page === "My field" && (
             <>
               <FieldControls
+                key={setupRequest}
+                startAdding={autoAddField}
                 fields={fields}
                 seasons={seasons}
                 field={activeField}
@@ -1521,19 +1395,23 @@ function FarmApp({ initial }: { initial: Workspace }) {
                 onSelect={selectScope}
                 onSaveField={saveFieldDetails}
                 onAddSeason={saveNewSeason}
-                onStage={(season) => {
-                  const next = parseSeason(season);
-                  setSeasons((prev) =>
-                    prev.map((s) => (s.id === next.id ? next : s)),
-                  );
-                }}
               />
-              <div className="field-profile">
+              <div className="field-profile field-profile-sleek">
                 <div className="field-profile-copy">
-                  <span className="pill green">{activeSeason.name}</span>
+                  <div className="field-profile-badges">
+                    <span className="pill green">{activeSeason.name}</span>
+                    <span className="pill neutral">
+                      Stage:{" "}
+                      {activeSeason.growthStage === "not-set"
+                        ? "Not set"
+                        : activeSeason.growthStage}
+                    </span>
+                  </div>
                   <h2>{activeField.name}</h2>
                   <p>
-                    <Icon name="pin" size={16} /> {activeField.locality}
+                    <Icon name="pin" size={16} /> {activeField.locality} ·{" "}
+                    {activeField.location.lat.toFixed(3)}°N,{" "}
+                    {activeField.location.lng.toFixed(3)}°E
                   </p>
                   <div className="profile-metrics">
                     <div>
@@ -1541,87 +1419,235 @@ function FarmApp({ initial }: { initial: Workspace }) {
                       <strong>{activeField.areaHectares} ha</strong>
                     </div>
                     <div>
-                      <small>Crop & variety</small>
-                      <strong>{activeSeason.variety} rice</strong>
+                      <small>Crop &amp; variety</small>
+                      <strong>
+                        {cropName(activeSeason.crop)} · {activeSeason.variety}
+                      </strong>
                     </div>
                     <div>
                       <small>Water source</small>
                       <strong>{activeField.irrigationSource}</strong>
                     </div>
                   </div>
-                  <button
-                    className="primary"
-                    onClick={() => go("Field scouting")}
-                  >
-                    Scout this field <Icon name="arrow" size={17} />
-                  </button>
-                </div>
-                {map}
-              </div>
-              <Panel
-                title="Your crop season"
-                detail={
-                  activeSeason.isIllustrative
-                    ? "Illustrative season dates; confirm growth stage in the field"
-                    : "Season dates and stage entered by you"
-                }
-              >
-                <dl className="season-facts">
-                  <div>
-                    <dt>Sowing date</dt>
-                    <dd>{activeSeason.sowingDate}</dd>
-                  </div>
-                  <div>
-                    <dt>Expected harvest (entered)</dt>
-                    <dd>{activeSeason.expectedHarvestDate}</dd>
-                  </div>
-                  <div>
-                    <dt>Current stage (entered)</dt>
-                    <dd>
-                      {activeSeason.growthStage === "not-set"
-                        ? "Not confirmed"
-                        : activeSeason.growthStage}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Record source</dt>
-                    <dd>
+                  <div className="season-dates-inline">
+                    <span>
+                      <strong>Sown:</strong>{" "}
+                      {activeSeason.sowingDate || "Not entered"}
+                    </span>
+                    <span>
+                      <strong>Expected harvest:</strong>{" "}
+                      {activeSeason.expectedHarvestDate || "Not planned"}
+                    </span>
+                    <span>
+                      <strong>Source:</strong>{" "}
                       {activeSeason.isIllustrative
                         ? "Illustrative sample"
                         : "Entered by you"}
-                    </dd>
+                    </span>
                   </div>
-                </dl>
-              </Panel>
+                  <div
+                    className="stage-stepper"
+                    role="group"
+                    aria-label="Update crop growth stage"
+                  >
+                    {(
+                      [
+                        ["planting", "Planting"],
+                        ["vegetative", "Vegetative"],
+                        ["reproductive", "Reproductive"],
+                        ["harvest", "Harvest"],
+                        ["finished", "Finished"],
+                      ] as const
+                    ).map(([stageId, label], idx) => {
+                      const order = [
+                        "planting",
+                        "vegetative",
+                        "reproductive",
+                        "harvest",
+                        "finished",
+                      ];
+                      const currentIdx = order.indexOf(
+                        activeSeason.growthStage,
+                      );
+                      const isDone = currentIdx > idx;
+                      const isActive = activeSeason.growthStage === stageId;
+                      return (
+                        <button
+                          key={stageId}
+                          type="button"
+                          aria-pressed={isActive}
+                          className={
+                            isActive ? "active" : isDone ? "done" : ""
+                          }
+                          onClick={() => {
+                            const next = parseSeason({
+                              ...activeSeason,
+                              growthStage: stageId,
+                            });
+                            setSeasons((prev) =>
+                              prev.map((s) => (s.id === next.id ? next : s)),
+                            );
+                          }}
+                        >
+                          <i>{isDone ? "✓" : idx + 1}</i>
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="field-profile-actions">
+                    <button
+                      className="primary"
+                      onClick={() => go("Field scouting")}
+                    >
+                      <Icon name="camera" size={16} />
+                      Record visit
+                    </button>
+                    <button onClick={() => go("Crop health")}>
+                      <Icon name="leaf" size={16} />
+                      Crop concerns
+                    </button>
+                    <button onClick={() => go("Soil & weather")}>
+                      <Icon name="cloud" size={16} />
+                      Weather &amp; reports
+                    </button>
+                  </div>
+                </div>
+                {map}
+              </div>
+              <FieldAIAdvisor
+                field={activeField}
+                season={activeSeason}
+                observations={obs}
+                tasks={fieldTasks}
+                reports={fieldReports.filter(
+                  (r) =>
+                    r.fieldId === selectedFieldId &&
+                    r.seasonId === selectedSeasonId,
+                )}
+                onPlanCheck={(title) => {
+                  setAction(title);
+                  go("Action plan");
+                }}
+              />
+              {activeField.isIllustrative && (
+                <Panel
+                  title="Sample field scouting photos"
+                  detail="Illustrative Salem paddy photos showing contrast between a waterlogged corner and healthy tillers"
+                  action={
+                    <button
+                      className="text-button"
+                      onClick={() => go("Field scouting")}
+                    >
+                      Add your own photos <Icon name="arrow" size={14} />
+                    </button>
+                  }
+                >
+                  <div className="sample-gallery-grid">
+                    <figure className="sample-photo-card">
+                      <img
+                        src="/images/samples/point1-yellowing-wet.jpg"
+                        alt="Illustrative sample showing yellowing lower rice leaves in a wet paddy corner"
+                        loading="lazy"
+                      />
+                      <figcaption>
+                        <span className="pill amber">Point 1 · Low corner</span>
+                        <strong>Yellowing leaves &amp; standing water</strong>
+                        <small>
+                          Illustrative sample photo · Compare with healthy
+                          plants before assuming disease.
+                        </small>
+                        <button
+                          className="text-button"
+                          onClick={() => {
+                            selectPoint("pt-1");
+                            go("Field scouting");
+                          }}
+                        >
+                          Inspect Point 1 <Icon name="arrow" size={14} />
+                        </button>
+                      </figcaption>
+                    </figure>
+                    <figure className="sample-photo-card">
+                      <img
+                        src="/images/samples/point3-healthy-paddy.jpg"
+                        alt="Illustrative sample showing healthy green rice paddy tillers in well-drained soil"
+                        loading="lazy"
+                      />
+                      <figcaption>
+                        <span className="pill blue">Point 2 · Healthy zone</span>
+                        <strong>Lush green tillers &amp; moist soil</strong>
+                        <small>
+                          Illustrative sample photo · Healthy baseline contrast
+                          from the same paddy field.
+                        </small>
+                        <button
+                          className="text-button"
+                          onClick={() => {
+                            selectPoint("pt-2");
+                            go("Field scouting");
+                          }}
+                        >
+                          Inspect Point 2 <Icon name="arrow" size={14} />
+                        </button>
+                      </figcaption>
+                    </figure>
+                  </div>
+                </Panel>
+              )}
               <div className="two-col">
                 <Panel
                   title="Places to check"
                   detail="Inspect the same locations each visit"
                 >
                   <div className="point-list">
-                    {scoutingPoints.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          selectPoint(p.id);
-                          go("Field scouting");
-                        }}
-                      >
-                        <span className="point-number">{p.position}</span>
-                        <span>
-                          <strong>{p.quadrat}</strong>
-                          <small>
-                            {p.coordinates.lat}° N, {p.coordinates.lng}° E
-                          </small>
-                        </span>
-                        <span className="pill neutral">
-                          {obs.some((o) => o.scoutingPointId === p.id)
-                            ? "Recorded"
-                            : "To inspect"}
-                        </span>
-                        <Icon name="chevron" size={16} />
-                      </button>
-                    ))}
+                    {scoutingPoints.map((p) => {
+                      const ptObs = obs.find((o) => o.scoutingPointId === p.id);
+                      const ptSummary = ptObs
+                        ? [
+                            ptObs.leafColor && ptObs.leafColor !== "normal"
+                              ? ptObs.leafColor
+                              : "normal leaves",
+                            ptObs.soilCondition || null,
+                            ptObs.visiblePestCount
+                              ? `${ptObs.visiblePestCount} insects`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : "Not inspected yet";
+                      const hasIssue = Boolean(
+                        ptObs &&
+                          ((ptObs.leafColor && ptObs.leafColor !== "normal") ||
+                            ptObs.soilCondition === "waterlogged" ||
+                            (ptObs.visiblePestCount || 0) > 0),
+                      );
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            selectPoint(p.id);
+                            go("Field scouting");
+                          }}
+                        >
+                          <span className="point-number">{p.position}</span>
+                          <span>
+                            <strong>{p.quadrat}</strong>
+                            <small>{ptSummary}</small>
+                          </span>
+                          <span
+                            className={`pill ${hasIssue ? "amber" : ptObs ? "blue" : "neutral"}`}
+                          >
+                            {hasIssue
+                              ? "Changes noted"
+                              : ptObs
+                                ? "Checked"
+                                : "To inspect"}
+                          </span>
+                          <Icon name="chevron" size={16} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </Panel>
                 <Panel
@@ -1634,9 +1660,20 @@ function FarmApp({ initial }: { initial: Workspace }) {
                   >
                     <Icon name="drop" />
                     <span>
-                      <strong>Soil & water reports</strong>
+                      <strong>Soil, water &amp; live weather</strong>
                       <small>
-                        {soil.length} sample soil report · no water report
+                        {
+                          fieldReports.filter(
+                            (r) =>
+                              r.fieldId === selectedFieldId &&
+                              r.seasonId === selectedSeasonId,
+                          ).length
+                        }{" "}
+                        entered report(s)
+                        {activeField.isIllustrative
+                          ? ` · ${soil.length} sample soil record`
+                          : ""}{" "}
+                        · 5-day forecast
                       </small>
                     </span>
                     <Icon name="chevron" />
@@ -1657,6 +1694,31 @@ function FarmApp({ initial }: { initial: Workspace }) {
                 </Panel>
               </div>
             </>
+          )}
+          {page === "My field" && (
+            <details className="panel advanced-drawer">
+              <summary>
+                <span>
+                  <strong>Advanced: Georeferenced drone &amp; orthomosaic layers</strong>
+                  <small>
+                    Optional — upload an already-processed north-up PNG/JPEG/WebP
+                    field map with WGS84 bounds.
+                  </small>
+                </span>
+                <Icon name="chevron" size={16} />
+              </summary>
+              <div className="advanced-drawer-body">
+                <Suspense fallback={<p>Opening field imagery…</p>}>
+                  <FieldImagery
+                    key={activeSeason.id}
+                    field={activeField}
+                    season={activeSeason}
+                    records={imagery}
+                    onSave={(record) => setImagery((prev) => [...prev, record])}
+                  />
+                </Suspense>
+              </div>
+            </details>
           )}
           {page === "Field scouting" && (
             <>
@@ -1679,7 +1741,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
               </div>
               {photoGuideOpen && <PhotoGuide />}
               <div className="workflow-steps">
-                {["Choose a point", "Record observations", "Review & save"].map(
+                {["Photo guide", "Record observations", "Review & save"].map(
                   (t, i) => (
                     <button
                       key={t}
@@ -1698,38 +1760,45 @@ function FarmApp({ initial }: { initial: Workspace }) {
               <div className="scouting-layout">
                 <Panel
                   title="Your four check points"
-                  detail="Visit each place, including plants that look normal"
+                  detail="Tap a point on the satellite map or below to record what you see"
                 >
                   {map}
-                  <div className="point-tabs">
-                    {scoutingPoints.map((p) => (
-                      <button
-                        key={p.id}
-                        aria-pressed={point === p.id}
-                        className={point === p.id ? "active" : ""}
-                        onClick={() => {
-                          selectPoint(p.id);
-                          setStep(0);
-                        }}
-                      >
-                        {p.position}
-                        <Icon
-                          name={
-                            obs.some((o) => o.scoutingPointId === p.id)
-                              ? "check"
-                              : "pin"
-                          }
-                          size={13}
-                        />
-                      </button>
-                    ))}
+                  <div className="point-tabs point-tabs-rich">
+                    {scoutingPoints.map((p) => {
+                      const ptObs = obs.find((o) => o.scoutingPointId === p.id);
+                      const hasIssue = Boolean(
+                        ptObs &&
+                          ((ptObs.leafColor && ptObs.leafColor !== "normal") ||
+                            ptObs.soilCondition === "waterlogged" ||
+                            (ptObs.visiblePestCount || 0) > 0),
+                      );
+                      return (
+                        <button
+                          key={p.id}
+                          aria-pressed={point === p.id}
+                          className={`point-rich-btn ${point === p.id ? "active" : ""}`}
+                          onClick={() => {
+                            selectPoint(p.id);
+                            setStep(1);
+                          }}
+                        >
+                          <span
+                            className={`point-dot ${hasIssue ? "warn" : ptObs ? "ok" : ""}`}
+                            aria-hidden="true"
+                          />
+                          <span className="point-rich-meta">
+                            <strong>Point {p.position}</strong>
+                            <small>{p.quadrat}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                   <p className="muted">
-                    Point {point.slice(-1)} ·{" "}
-                    {scoutingPoints.find((p) => p.id === point)?.quadrat}
-                    <br />
-                    These are sample map locations, not your phone’s GPS
-                    position.
+                    Selected: <strong>Point {point.slice(-1)}</strong> ·{" "}
+                    {scoutingPoints.find((p) => p.id === point)?.quadrat}.
+                    Suggested locations — inspect both changed and healthy
+                    plants.
                   </p>
                 </Panel>
                 <Panel
@@ -1772,8 +1841,10 @@ function FarmApp({ initial }: { initial: Workspace }) {
                     </>
                   ) : step === 1 ? (
                     <>
-                      <label>
-                        When did you observe this plant?
+                      <GuidedField
+                        label="When did you check the plant?"
+                        help="Choose the actual day and time you looked at this plant. Check this date when recording an earlier visit."
+                      >
                         <input
                           type="datetime-local"
                           required
@@ -1781,148 +1852,297 @@ function FarmApp({ initial }: { initial: Workspace }) {
                           max={nowInput()}
                           onChange={(e) => setObservationTime(e.target.value)}
                         />
-                      </label>
+                      </GuidedField>
                       <p className="muted">
                         Previous values are shown for reference. Verify each
                         value before saving a new visit. Observation and
                         recording times are stored separately.
                       </p>
 
-                      <div className="form-grid">
-                        <label>
-                          What colour are the leaves?
-                          <select
-                            value={current?.leafColor || ""}
-                            onChange={(e) =>
+                      <div className="quick-presets" aria-label="Quick symptom fill">
+                        <span>Quick fill for faster logging:</span>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() =>
                               edit({
-                                leafColor: e.target
-                                  .value as Observation["leafColor"],
+                                leafColor: "normal",
+                                soilCondition: "moist",
+                                visiblePestCount: 0,
+                                symptoms: "",
                               })
                             }
                           >
-                            <option value="">Choose appearance</option>
-                            {[
-                              "normal",
-                              "yellowing",
-                              "browning",
-                              "mottling",
-                            ].map((v) => (
-                              <option key={v} value={v}>
-                                {
-                                  {
-                                    normal: "Green / usual colour",
-                                    yellowing: "Turning yellow",
-                                    browning: "Brown / dried areas",
-                                    mottling: "Mixed light and dark patches",
-                                  }[v]
+                            Healthy / normal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              edit({
+                                leafColor: "yellowing",
+                                soilCondition: "waterlogged",
+                                visiblePestCount: 0,
+                              })
+                            }
+                          >
+                            Yellowing + standing water
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              edit({
+                                leafColor: "yellowing",
+                                soilCondition: "dry",
+                                visiblePestCount: 0,
+                              })
+                            }
+                          >
+                            Yellowing + dry soil
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              edit({
+                                leafColor: "browning",
+                                soilCondition: "moist",
+                                visiblePestCount: 6,
+                              })
+                            }
+                          >
+                            Leaf damage + insects
+                          </button>
+                        </div>
+                      </div>
+                      <div className="scout-visual-fields">
+                        <GuidedField
+                          label="What colour are the leaves?"
+                          help="Look at several plants at this marked place. Tap the colour you see now."
+                        >
+                          <div
+                            className="scout-choice-grid"
+                            role="group"
+                            aria-label="Leaf colour"
+                          >
+                            {(
+                              [
+                                ["normal", "Green / normal", "#2a7a50"],
+                                ["yellowing", "Turning yellow", "#d4a024"],
+                                ["browning", "Brown / dried", "#a85a32"],
+                                ["mottling", "Mottled patches", "#8f9838"],
+                              ] as const
+                            ).map(([val, label, swatch]) => (
+                              <button
+                                key={val}
+                                type="button"
+                                aria-pressed={current?.leafColor === val}
+                                className={`scout-choice-card ${current?.leafColor === val ? "active" : ""}`}
+                                onClick={() =>
+                                  edit({
+                                    leafColor:
+                                      current?.leafColor === val ? undefined : val,
+                                  })
                                 }
-                              </option>
+                              >
+                                <i style={{ background: swatch }} aria-hidden="true" />
+                                <span>{label}</span>
+                              </button>
                             ))}
-                          </select>
-                        </label>
-                        <label>
-                          How does the soil look?
-                          <select
-                            value={current?.soilCondition || ""}
-                            onChange={(e) =>
-                              edit({
-                                soilCondition: e.target
-                                  .value as Observation["soilCondition"],
-                              })
-                            }
+                          </div>
+                        </GuidedField>
+
+                        <GuidedField
+                          label="How does the soil look?"
+                          help="Check the soil beside the plants. Standing water means water is visible above the soil."
+                        >
+                          <div
+                            className="scout-choice-grid"
+                            role="group"
+                            aria-label="Soil condition"
                           >
-                            <option value="">Choose condition</option>
-                            {["dry", "moist", "waterlogged", "cracked"].map(
-                              (v) => (
-                                <option key={v} value={v}>
-                                  {
-                                    {
-                                      dry: "Dry to the touch",
-                                      moist: "Damp / moist",
-                                      waterlogged: "Very wet / standing water",
-                                      cracked: "Dry with visible cracks",
-                                    }[v]
+                            {(
+                              [
+                                ["dry", "Dry to touch", "#c99f5c"],
+                                ["moist", "Damp / moist", "#4b8c58"],
+                                ["waterlogged", "Standing water", "#2f7fa3"],
+                                ["cracked", "Dry & cracked", "#946542"],
+                              ] as const
+                            ).map(([val, label, swatch]) => (
+                              <button
+                                key={val}
+                                type="button"
+                                aria-pressed={current?.soilCondition === val}
+                                className={`scout-choice-card ${current?.soilCondition === val ? "active" : ""}`}
+                                onClick={() =>
+                                  edit({
+                                    soilCondition:
+                                      current?.soilCondition === val
+                                        ? undefined
+                                        : val,
+                                  })
+                                }
+                              >
+                                <i style={{ background: swatch }} aria-hidden="true" />
+                                <span>{label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </GuidedField>
+
+                        <div className="form-grid">
+                          <GuidedField
+                            label="Where are the changed leaves?"
+                            help="Choose where on the plant you notice the change."
+                          >
+                            <div
+                              className="scout-pill-row"
+                              role="group"
+                              aria-label="Leaf location"
+                            >
+                              {(
+                                [
+                                  ["lower", "Near ground"],
+                                  ["middle", "Middle"],
+                                  ["upper", "Near top"],
+                                  ["mixed", "Mixed"],
+                                ] as const
+                              ).map(([val, label]) => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  aria-pressed={current?.leafLocation === val}
+                                  className={
+                                    current?.leafLocation === val ? "active" : ""
                                   }
-                                </option>
-                              ),
-                            )}
-                          </select>
-                        </label>
-                        <label>
-                          Where are the changed leaves?
-                          <select
-                            value={current?.leafLocation || ""}
-                            onChange={(e) =>
-                              edit({
-                                leafLocation: e.target
-                                  .value as Observation["leafLocation"],
-                              })
-                            }
+                                  onClick={() =>
+                                    edit({
+                                      leafLocation:
+                                        current?.leafLocation === val
+                                          ? undefined
+                                          : val,
+                                    })
+                                  }
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </GuidedField>
+
+                          <GuidedField
+                            label="Visible pest pressure (per 5 hills)"
+                            help="Choose the level of insect/pest activity seen across ~5 plant hills, or adjust the count directly. Choose None (0) if checked and clear."
                           >
-                            <option value="">Not recorded</option>
-                            {["lower", "middle", "upper", "mixed"].map((v) => (
-                              <option key={v} value={v}>
-                                {
-                                  {
-                                    lower: "Near the ground",
-                                    middle: "Middle of the plant",
-                                    upper: "Near the top",
-                                    mixed: "More than one part",
-                                  }[v]
-                                }
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          How many insects did you count?
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={current?.visiblePestCount ?? ""}
-                            onChange={(e) =>
-                              edit({
-                                visiblePestCount:
-                                  e.target.value === ""
-                                    ? undefined
-                                    : Math.max(
+                            <div className="pest-pressure-wrap">
+                              <div
+                                className="scout-pill-row"
+                                role="group"
+                                aria-label="Visible pest pressure level"
+                              >
+                                {(
+                                  [
+                                    [0, "None (0)"],
+                                    [2, "Few (1–3)"],
+                                    [5, "Moderate (4–8)"],
+                                    [10, "Heavy (10+)"],
+                                  ] as const
+                                ).map(([val, label]) => {
+                                  const count = current?.visiblePestCount;
+                                  const isActive =
+                                    val === 0
+                                      ? count === 0
+                                      : val === 2
+                                        ? count !== undefined &&
+                                          count >= 1 &&
+                                          count <= 3
+                                        : val === 5
+                                          ? count !== undefined &&
+                                            count >= 4 &&
+                                            count <= 8
+                                          : count !== undefined && count >= 9;
+                                  return (
+                                    <button
+                                      key={val}
+                                      type="button"
+                                      aria-pressed={isActive}
+                                      className={isActive ? "active" : ""}
+                                      onClick={() =>
+                                        edit({
+                                          visiblePestCount: isActive
+                                            ? undefined
+                                            : val,
+                                        })
+                                      }
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className="pest-stepper">
+                                <button
+                                  type="button"
+                                  aria-label="Decrease trap or hill count"
+                                  onClick={() =>
+                                    edit({
+                                      visiblePestCount: Math.max(
                                         0,
-                                        Math.floor(Number(e.target.value)),
+                                        (current?.visiblePestCount ?? 0) - 1,
                                       ),
-                              })
-                            }
-                          />
-                        </label>
+                                    })
+                                  }
+                                >
+                                  −
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  aria-label="Exact pest count"
+                                  placeholder="—"
+                                  value={current?.visiblePestCount ?? ""}
+                                  onChange={(e) =>
+                                    edit({
+                                      visiblePestCount:
+                                        e.target.value === ""
+                                          ? undefined
+                                          : Math.max(
+                                              0,
+                                              Math.floor(Number(e.target.value)),
+                                            ),
+                                    })
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  aria-label="Increase trap or hill count"
+                                  onClick={() =>
+                                    edit({
+                                      visiblePestCount:
+                                        (current?.visiblePestCount ?? 0) + 1,
+                                    })
+                                  }
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </GuidedField>
+                        </div>
                       </div>
-                      <div className="form-help-row">
-                        <HelpHint title="What do these soil words mean?">
-                          <p>
-                            Dry: little moisture to the touch. Damp: some
-                            moisture. Very wet: saturated soil or visible
-                            standing water. Cracked: visible cracks in the
-                            surface. Describe what you see in the notes if you
-                            are unsure.
-                          </p>
-                        </HelpHint>
-                        <HelpHint title="How should I count insects?">
-                          <p>
-                            Use the same number of plants each visit so the
-                            counts can be compared. Enter 0 only if you checked
-                            and found none. Leave it blank if you did not count.
-                          </p>
-                        </HelpHint>
-                      </div>
-                      <label>
-                        What else looks different?
+                      <GuidedField
+                        label="What else looks different?"
+                        help="Describe what you can see, such as spots, holes or dry leaf tips. You do not need to know the disease name."
+                      >
                         <input
                           placeholder="e.g. spots, holes, wilting"
                           value={current?.symptoms || ""}
                           onChange={(e) => edit({ symptoms: e.target.value })}
                         />
-                      </label>
-                      <label>
-                        Field notes
+                      </GuidedField>
+                      <GuidedField
+                        label="Anything else to remember?"
+                        help="Add a short note about this place, such as standing water near the drain. Leave it blank if there is nothing else to add."
+                      >
                         <textarea
                           placeholder="Where did the problem start? What changed?"
                           value={current?.generalNotes || ""}
@@ -1930,7 +2150,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
                             edit({ generalNotes: e.target.value })
                           }
                         />
-                      </label>
+                      </GuidedField>
                       <div className="form-grid">
                         {["whole plant", "close-up"].map((kind) => (
                           <label className="upload-zone" key={kind}>
@@ -2019,15 +2239,17 @@ function FarmApp({ initial }: { initial: Workspace }) {
           )}
           {page === "Crop health" && (
             <>
-              <Suspense fallback={<p>Opening rice reference library…</p>}>
-                <RiceReferenceLibrary
-                  onRecord={() => go("Field scouting")}
-                  onPlan={(title) => {
-                    setAction(title);
-                    go("Action plan");
-                  }}
-                />
-              </Suspense>
+              {activeSeason.crop === "rice" && (
+                <Suspense fallback={<p>Opening rice reference library…</p>}>
+                  <RiceReferenceLibrary
+                    onRecord={() => go("Field scouting")}
+                    onPlan={(title) => {
+                      setAction(title);
+                      go("Action plan");
+                    }}
+                  />
+                </Suspense>
+              )}
               <div className="health-banner">
                 <span className="large-icon amber">
                   <Icon name="leaf" size={32} />
@@ -2035,13 +2257,16 @@ function FarmApp({ initial }: { initial: Workspace }) {
                 <div>
                   <span className="eyebrow">WHAT YOUR NOTES SUGGEST</span>
                   <h2>
-                    {supported.length
-                      ? `${supported.length} possible reason${supported.length > 1 ? "s are" : " is"} worth checking`
-                      : "A little more evidence is needed"}
+                    {activeSeason.crop !== "rice"
+                      ? "Keep records for expert review"
+                      : supported.length
+                        ? `${supported.length} possible reason${supported.length > 1 ? "s are" : " is"} worth checking`
+                        : "A little more evidence is needed"}
                   </h2>
                   <p>
-                    Several causes can occur together. These are investigation
-                    priorities, not confirmed diagnoses.
+                    {activeSeason.crop !== "rice"
+                      ? "You can keep photos, observations and tasks for this crop. Crop-specific guidance is not available yet; ask an agronomist to review your records."
+                      : "Several causes can occur together. These are things to check, not confirmed diagnoses."}
                   </p>
                 </div>
                 <button
@@ -2104,6 +2329,16 @@ function FarmApp({ initial }: { initial: Workspace }) {
             </>
           )}
           {page === "Soil & weather" && (
+            <FieldWeather
+              key={`${activeField.id}:${activeField.location.lat},${activeField.location.lng}`}
+              field={activeField}
+              onPlanCheck={(title) => {
+                setAction(title);
+                go("Action plan");
+              }}
+            />
+          )}
+          {page === "Soil & weather" && (
             <ReportRecords
               key={activeSeason.id}
               season={activeSeason}
@@ -2140,13 +2375,14 @@ function FarmApp({ initial }: { initial: Workspace }) {
             (!activeField.isIllustrative ||
               activeSeason.id !== "season-2024-k") && (
               <Panel
-                title="Weather and expert review"
+                title="Laboratory verification & next test"
                 detail="Sample records from the demo are not used for your field."
               >
                 <p className="muted">
-                  Add your laboratory results above, record field conditions
-                  during a visit, or plan a test in Next steps. Live weather and
-                  independent report verification are not connected.
+                  Add your laboratory results above, fetch a live 5-day forecast
+                  for this field’s coordinates, or plan a soil/water test in
+                  Next steps. Independent laboratory verification is not
+                  connected.
                 </p>
                 <button
                   onClick={() => {
@@ -2361,12 +2597,16 @@ function FarmApp({ initial }: { initial: Workspace }) {
                     </span>
                     <div>
                       <small>
-                        {activeSeason.sowingDate} ·{" "}
+                        {activeSeason.sowingDate || "Planting date not entered"}{" "}
+                        ·{" "}
                         {activeSeason.isIllustrative
                           ? "SAMPLE RECORD"
                           : "ENTERED BY YOU"}
                       </small>
-                      <h3>{activeSeason.variety} rice sowing</h3>
+                      <h3>
+                        {cropName(activeSeason.crop)} · {activeSeason.variety}{" "}
+                        sowing
+                      </h3>
                       <p>Start of {activeSeason.name}.</p>
                     </div>
                   </article>
@@ -2443,8 +2683,10 @@ function FarmApp({ initial }: { initial: Workspace }) {
                     setMessage("Activity added to your farm diary.");
                   }}
                 >
-                  <label>
-                    Activity
+                  <GuidedField
+                    label="What work did you do?"
+                    help="Choose the work done in this field, such as watering or taking a soil sample. Choose Other field work if none fits."
+                  >
                     <select
                       value={operation}
                       onChange={(e) => setOperation(e.target.value)}
@@ -2460,27 +2702,33 @@ function FarmApp({ initial }: { initial: Workspace }) {
                         <option key={v}>{v}</option>
                       ))}
                     </select>
-                  </label>
-                  <label>
-                    Activity date
+                  </GuidedField>
+                  <GuidedField
+                    label="When did you do the work?"
+                    help="Choose the date the work happened. This keeps your field history in the right order."
+                  >
                     <input
                       type="date"
                       required
                       value={operationDate}
                       onChange={(e) => setOperationDate(e.target.value)}
                     />
-                  </label>
-                  <label>
-                    What did you do?
+                  </GuidedField>
+                  <GuidedField
+                    label="What did you do?"
+                    help="Write a short note: what you did, where, and how much you used. For example, cleared the north drain."
+                  >
                     <textarea
                       required
                       placeholder="Include location, amount and what you noticed."
                       value={operationNotes}
                       onChange={(e) => setOperationNotes(e.target.value)}
                     />
-                  </label>
-                  <label>
-                    Cost (₹, optional)
+                  </GuidedField>
+                  <GuidedField
+                    label="Cost in rupees (optional)"
+                    help="Enter what this activity cost, such as 250 or 250.50. Leave it blank if unknown. Enter 0 only if there was no cost."
+                  >
                     <input
                       type="number"
                       min="0"
@@ -2488,7 +2736,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
                       value={cost}
                       onChange={(e) => setCost(e.target.value)}
                     />
-                  </label>
+                  </GuidedField>
                   <button className="primary full-width" type="submit">
                     <Icon name="plus" size={17} /> Save activity
                   </button>
@@ -2525,8 +2773,10 @@ function FarmApp({ initial }: { initial: Workspace }) {
                 title="Photos from your return visit"
                 detail="Choose the same point to compare earlier and follow-up images."
               >
-                <label>
-                  Check point
+                <GuidedField
+                  label="Which marked place?"
+                  help="Choose the numbered place where this photo or visit belongs. Use the same place when you return so changes can be compared fairly."
+                >
                   <select
                     value={point}
                     onChange={(e) => selectPoint(e.target.value)}
@@ -2537,7 +2787,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
                       </option>
                     ))}
                   </select>
-                </label>
+                </GuidedField>
                 {gallery()}
                 <label className="upload-zone">
                   Add a return-visit photo
@@ -2561,8 +2811,9 @@ function FarmApp({ initial }: { initial: Workspace }) {
                   <span className="eyebrow">AGRONOMIST HANDOFF</span>
                   <h2>{activeField.name} · Crop health case</h2>
                   <p>
-                    {activeSeason.variety} rice · {activeField.areaHectares} ha
-                    · {activeField.locality} · {activeSeason.name}
+                    {cropName(activeSeason.crop)} · {activeSeason.variety} ·{" "}
+                    {activeField.areaHectares} ha · {activeField.locality} ·{" "}
+                    {activeSeason.name}
                   </p>
                   <span className="pill neutral">
                     {activeField.isIllustrative
@@ -2661,8 +2912,10 @@ function FarmApp({ initial }: { initial: Workspace }) {
                 <button className="primary" onClick={downloadBackup}>
                   <Icon name="down" size={17} /> Download backup
                 </button>
-                <label>
-                  Restore a backup file
+                <GuidedField
+                  label="Bring back saved records"
+                  help="Choose a backup you previously downloaded from this app. You can review it before adding records. A normal report or photo is not a backup."
+                >
                   <input
                     type="file"
                     accept=".json,application/json"
@@ -2671,7 +2924,7 @@ function FarmApp({ initial }: { initial: Workspace }) {
                       e.target.value = "";
                     }}
                   />
-                </label>
+                </GuidedField>
               </div>
               <p className="muted">
                 Restore adds missing records; duplicate IDs are not added twice.

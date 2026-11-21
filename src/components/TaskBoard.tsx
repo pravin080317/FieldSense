@@ -1,3 +1,4 @@
+import { GuidedField } from "./GuidedField";
 import { useState } from "react";
 import type { FarmTask, TaskOutcome, TaskStatus } from "../types/farm";
 import type { Observation } from "../types/domain";
@@ -69,8 +70,10 @@ function TaskCard({
       </div>
       {details && (
         <div className="task-result">
-          <label>
-            What did you find?
+          <GuidedField
+            label="What did you find?"
+            help="After returning to the field, choose whether the plants look better, the same or worse. Choose Not sure if you cannot tell."
+          >
             <select
               value={outcome}
               onChange={(e) => setOutcome(e.target.value as TaskOutcome)}
@@ -80,15 +83,17 @@ function TaskCard({
               <option value="same">About the same</option>
               <option value="worse">Plants look worse</option>
             </select>
-          </label>
-          <label>
-            Notes about the result
+          </GuidedField>
+          <GuidedField
+            label="What happened after the work?"
+            help="Write what you did and what you saw afterwards. For example, the water drained but the leaves are still yellow. These notes are needed to finish the task."
+          >
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="What did you check, what changed, and what should happen next?"
             />
-          </label>
+          </GuidedField>
           <button className="primary" onClick={() => change("completed")}>
             Save result & complete task
           </button>
@@ -228,8 +233,10 @@ export function TaskBoard({
             }
           }}
         >
-          <label>
-            What needs doing?
+          <GuidedField
+            label="What needs doing?"
+            help="Write one clear job, such as check the north drain or take a soil sample. Keep it specific enough to know when it is finished."
+          >
             <textarea
               required
               value={title}
@@ -237,18 +244,22 @@ export function TaskBoard({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="For example: check water depth in the wet patch"
             />
-          </label>
-          <label>
-            Due date
+          </GuidedField>
+          <GuidedField
+            label="When should this be done?"
+            help="Choose when you plan to do the job. This saves a date in the app; it does not automatically send a phone message."
+          >
             <input
               type="date"
               required
               value={due}
               onChange={(e) => setDue(e.target.value)}
             />
-          </label>
-          <label>
-            Link a field note (optional)
+          </GuidedField>
+          <GuidedField
+            label="Choose a related visit (optional)"
+            help="Choose the saved field note that explains why this work is needed. Leave No linked note if the task is not about an earlier visit."
+          >
             <select value={link} onChange={(e) => setLink(e.target.value)}>
               <option value="">No linked note</option>
               {observations.map((o) => (
@@ -259,7 +270,7 @@ export function TaskBoard({
                 </option>
               ))}
             </select>
-          </label>
+          </GuidedField>
           {error && (
             <p role="alert" className="form-error">
               {error}

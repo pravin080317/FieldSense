@@ -18,6 +18,20 @@ export class EvidenceEngine {
     asOf = new Date(),
     weather: WeatherRecord[] = [],
   ) {
+    const riceReview = field.cropId
+      ? field.cropId === "rice"
+      : !field.cropType || /^(rice\b|paddy\b)/i.test(field.cropType);
+    if (!riceReview)
+      return {
+        explanations: [] as WorkingExplanation[],
+        missingCritical: [
+          "Crop-specific review is not available for this crop yet. Keep clear photos and notes for an agronomist.",
+        ],
+        nextRecommendedCheck:
+          "Record what you see and ask an agronomist familiar with this crop to review it.",
+        summaryPlainLanguage:
+          "Your records are available, but rice review rules are not used for this crop. No cause has been suggested automatically.",
+      };
     const recent = (date: Date, days: number) => {
       const age = asOf.getTime() - new Date(date).getTime();
       return age >= 0 && age <= days * 86400000;
@@ -110,6 +124,7 @@ export class EvidenceEngine {
     const low = soil.filter((s) => s.labInterpretation === "low nitrogen");
 
     const stage =
+      field.season.expectedHarvestDate &&
       asOf.getTime() > +new Date(field.season.expectedHarvestDate)
         ? [
             "Season is past expected harvest; verify crop stage before interpreting yellowing.",

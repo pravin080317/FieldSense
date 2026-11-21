@@ -21,7 +21,7 @@ const image = (): FieldImagery => ({
   source: "User map export",
   notes: "Check alignment",
   alignment: "user-entered-bounds",
-  bounds: { south: 11.66, west: 78.14, north: 11.67, east: 78.15 },
+  bounds: { south: 11.65, west: 78.48, north: 11.66, east: 78.49 },
   file: {
     id: "file1",
     name: "field.png",

@@ -1,3 +1,4 @@
+import type { CropId } from "../data/crops.ts";
 export type Coordinate = { lat: number; lng: number };
 export interface FarmField {
   id: string;
@@ -13,7 +14,7 @@ export interface FarmSeason {
   id: string;
   fieldId: string;
   name: string;
-  crop: "rice";
+  crop: CropId;
   variety: string;
   sowingDate: string;
   expectedHarvestDate: string;

@@ -1,4 +1,65 @@
+# Current execution plan
+
+21 November 2026: The [rewritten farmer-first plan](FARMER_FEATURE_MASTER_PLAN.md) and [feature tracker](FEATURE_TRACKER.md) control current scope, order and acceptance. Start with the tracker’s Next increment section. Sections below are historical implementation checklists; unchecked older items and old test counts must not override current status.
+
 # Level 2 development plan
+
+## Home benefit clarification — follow-up user priority
+
+- [x] Inspect the existing live desktop Home and identify weak purpose/value communication.
+- [x] Explain current usable outputs with direct links, rather than only entry steps.
+- [x] Reduce illustration and add a labelled example of record → job → revisit.
+- [x] Keep benefit introduction expandable for returning farmers; preserve actual tasks/history.
+- [x] Updated Home regression; 65 tests/build/lint pass.
+- [ ] Final desktop/phone visual and link acceptance; post-change native window interaction blocked.
+
+
+## Crop-aware scope expansion
+
+- [x] Broaden Home purpose from rice field to farm diary.
+- [x] Seasonal crop choices, actual crop display/export, neutral field labels and retained rice records.
+- [x] Restrict rice references/rules to rice; non-rice expert-review fallback.
+- [x] Crop identity/backups and rule-isolation regression checks; 65 tests/build/lint.
+- [ ] Browser crop create/reload/backup and correct guidance isolation.
+- [ ] Plan and implement perennial, mixed-planting, bed/batch models before claiming those farm types. See CROPS_AND_FARM_TYPES.md.
+- [ ] Locally reviewed guides/models for additional crops, each with independent validation.
+
+
+## Home-first farmer journey — user priority
+
+- [x] Two reviewer proposal/challenge/refinement; decisions in HOME_JOURNEY_REVIEW.md.
+- [x] Replace cluttered Home with a plain purpose, one main action and a short first-use journey.
+- [x] Differentiate sample, existing real fields and returning farmer states without resetting evidence.
+- [x] Open Add field form directly and put setup before advanced imagery.
+- [x] Returning field context, actual task/latest visit, described secondary links and backup note.
+- [x] Responsive/theme styling; server-render state regression; 63 tests/build/lint pass.
+- [ ] Browser/phone and farmer acceptance of the complete Home → setup → visit → task/history journey. Preview inspection blocked in this increment.
+
+
+## Farmer input guidance — current UX increment
+
+- [x] Add explicit help icons beside main input labels with short examples.
+- [x] Use separate help buttons and correct label/input/help links; no hover dependency.
+- [x] Simplify field, report, task, visit, map and cost wording; preserve accurate saved values/units.
+- [x] Build/lint and existing 62 tests; Chrome check of help expansion and unchanged input value.
+- [ ] Full phone, keyboard, screen-reader and theme acceptance across all forms; farmer wording review and Tamil translation.
+
+
+## Master scope requested 21 November 2026
+
+User requested **all supplied repository features be planned first**, prioritising farmer usefulness, ease of use, reliability and accurate predictions. The complete scope and release gates are in [FARMER_FEATURE_MASTER_PLAN.md](FARMER_FEATURE_MASTER_PLAN.md). It maps all 20 projects and their supplied subfeatures, including optional research/hardware work. It supersedes feature-selection suggestions above/below as the master backlog, not as a statement of implementation.
+
+Next recommended stage is **A — Trustworthy core**: complete existing map/location/upload/offline acceptance, fix discovered defects, simplify common workflows and address performance. Stage B adds Tamil and operational inventory/harvest records; later stages cover connected evidence, evaluated ML, advanced spatial analysis and separately validated hardware.
+
+- [x] Preserve supplied 20-project breakdown, labelled as user-provided reference.
+- [x] Map each project and its technical features to a staged backlog with existing-subset notes.
+- [x] Define farmer UX, prediction-quality and reliability acceptance gates.
+- [ ] Verify detailed upstream claims/licences/versions before each integration.
+- [ ] Execute Stage A acceptance with real browser/phone and farmer pilot evidence.
+- [ ] Build subsequent stages as individually verified increments; do not promise absolute predictive accuracy.
+
+This is a documentation increment only; no new application feature, model, hardware control or cloud deployment is claimed.
+
 
 ## Approved place search and field pin
 
@@ -161,3 +222,12 @@ Requested: 20 November 2026. Preserve neutral Salem/Tamil Nadu defaults.
 - [ ] Regression tests for migration, field/season isolation, validation, tasks and backups; build/lint and UI verification.
 
 Later items (lab-report entry, Tamil localisation, offline app shell and connected services) remain in Milestone 3 and beyond.
+
+### Whole-farm dashboard — 21 November 2026
+
+- Added Dashboard navigation and a Home entry, with growing-area cards, saved photos or clearly empty crop placeholders, crop/name filters, last checks and scoped job actions.
+- Added six-week saved-visit bars and completed/pending/overdue job summaries. Counts use saved records; status labels describe recorded changes or work, never predicted crop health. Examples are explicitly labelled and excluded by default once real areas exist.
+- Added wheat, flowers, coconut and garden plants (12 crop choices total). Rice/paddy stays one crop. Coconut and garden plantings allow unknown planting dates; expected harvest is optional. Existing records and backup schema remain compatible.
+- Dashboard uses the selected planting for the open field and latest-added planting for others, with this scope explained onscreen. Older plantings remain in History.
+- Validation: 67 tests pass, production build and lint pass. Added field/planting isolation, chart totals and unknown-date backup coverage. Final desktop/mobile visual acceptance remains pending. Main bundle size warning remains. Local changes are unpushed.
+- Limits/next: no automatic diagnosis, yield forecast, full orchard harvest model or simultaneous mixed-crop batch model. Next verify dashboard on desktop/mobile and review wording with farmers before field readiness claims.

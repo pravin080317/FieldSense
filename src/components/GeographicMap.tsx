@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import type { FarmField, Coordinate } from "../types/farm";
 import type { FieldImagery } from "../types/imagery";
 import { fieldPoints, boundaryGeoJSON } from "../services/farm";
+import { HelpHint } from "./Help";
 import { Icon } from "./Visuals";
 import { requestDevicePosition } from "../services/location";
 
@@ -30,7 +31,9 @@ export function GeographicMap({
   const map = useRef<L.Map | null>(null);
   const shapes = useRef<L.LayerGroup | null>(null);
   const tiles = useRef<L.TileLayer | null>(null);
-  const [streets, setStreets] = useState(false);
+  const [mapMode, setMapMode] = useState<"satellite" | "streets" | "local">(
+    "satellite",
+  );
   const [draw, setDraw] = useState(false);
   const [picking, setPicking] = useState(false);
   const [tileError, setTileError] = useState(false);
@@ -89,24 +92,26 @@ export function GeographicMap({
   }, [field.id, imagery, opacity]);
   useEffect(() => {
     const view = map.current;
-    if (!view) return;
-    if (streets) {
-      const layer = L.tileLayer(
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          maxZoom: 19,
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        },
-      ).addTo(view);
-      tiles.current = layer;
-      layer.on("tileerror", () => setTileError(true));
-      return () => {
-        view.removeLayer(layer);
-        tiles.current = null;
-      };
-    }
-  }, [streets, field.id]);
+    if (!view || mapMode === "local") return;
+    const url =
+      mapMode === "satellite"
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    const attribution =
+      mapMode === "satellite"
+        ? "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+        : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    const layer = L.tileLayer(url, {
+      maxZoom: 19,
+      attribution,
+    }).addTo(view);
+    tiles.current = layer;
+    layer.on("tileerror", () => setTileError(true));
+    return () => {
+      view.removeLayer(layer);
+      tiles.current = null;
+    };
+  }, [mapMode, field.id]);
   useEffect(() => {
     const group = shapes.current;
     if (!group) return;
@@ -123,10 +128,10 @@ export function GeographicMap({
       L.polygon(
         field.boundary.map((p) => [p.lat, p.lng] as L.LatLngTuple),
         {
-          color: "#527c45",
+          color: mapMode === "satellite" ? "#e5f4d4" : "#2f6c47",
           weight: 3,
-          fillColor: "#94b46e",
-          fillOpacity: streets ? 0.23 : 0.24,
+          fillColor: mapMode === "satellite" ? "#8cc474" : "#94b46e",
+          fillOpacity: mapMode === "satellite" ? 0.25 : 0.24,
         },
       ).addTo(group);
     fieldPoints(field).forEach((p) => {
@@ -155,7 +160,7 @@ export function GeographicMap({
           .bindTooltip(`Corner ${i + 1}`)
           .addTo(group),
       );
-  }, [field, point, editing, streets, onSelect, onLocation]);
+  }, [field, point, editing, mapMode, onSelect, onLocation]);
   useEffect(() => {
     const view = map.current;
     if (!view) return;
@@ -268,6 +273,18 @@ export function GeographicMap({
   }
   return (
     <div className="geographic-map">
+      <HelpHint title="How do I use this map?">
+        <p>
+          Drag the map to move around. Use + and − to zoom. Locate me shows
+          where your device is; Fit field takes you back to your saved field.
+        </p>
+        <p>
+          When adding or editing a field, Set field centre lets you tap its
+          location. Mark corners lets you tap around the outside edge. Choose
+          Save field afterwards to keep your changes. The centre is a single
+          point; the boundary is the whole field edge.
+        </p>
+      </HelpHint>
       <div className="map-toolbar">
         <button type="button" onClick={fit}>
           <Icon name="field" size={16} /> Fit field
@@ -282,17 +299,28 @@ export function GeographicMap({
             ? "Locating…"
             : "Locate me"}
         </button>
-        <button
-          type="button"
-          aria-pressed={streets}
-          onClick={() => {
-            setStreets((v) => !v);
-            setTileError(false);
-          }}
-        >
-          <Icon name="map" size={16} />
-          {streets ? "Hide street map" : "Show street map"}
-        </button>
+        <div className="map-mode-group" role="group" aria-label="Map layer">
+          {(
+            [
+              ["satellite", "Satellite"],
+              ["streets", "Streets"],
+              ["local", "Offline grid"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={mapMode === id ? "primary" : ""}
+              aria-pressed={mapMode === id}
+              onClick={() => {
+                setMapMode(id);
+                setTileError(false);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {editing && (
           <button
             type="button"
@@ -322,7 +350,7 @@ export function GeographicMap({
           </button>
         )}
         <button type="button" onClick={exportGeometry}>
-          <Icon name="down" size={15} /> GeoJSON
+          <Icon name="down" size={15} /> Download field boundary
         </button>
       </div>
       <div
@@ -366,9 +394,11 @@ export function GeographicMap({
           ? "Showing the Salem sample field, not your detected location. Use My field to add your own field."
           : "Boundary entered by you; check it against the field."}{" "}
         Check points are suggested locations, not GPS measurements.
-        {streets
-          ? " Street tiles: OpenStreetMap (internet required)."
-          : " Local geometry view; no tile service is contacted."}
+        {mapMode === "satellite"
+          ? " Live satellite imagery: Esri World Imagery (internet required)."
+          : mapMode === "streets"
+            ? " Live street map: OpenStreetMap (internet required)."
+            : " Offline geometry view; no tile service is contacted."}
       </p>
       <p className="map-source">
         Locate me asks your device for its current position; allow location

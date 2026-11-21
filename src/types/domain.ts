@@ -15,6 +15,7 @@ export interface Field {
   areaHectares: number;
 
   cropType: string;
+  cropId?: string;
 
   season: CropSeason;
 }
@@ -24,13 +25,13 @@ export interface CropSeason {
 
   fieldId: string;
 
-  year: number;
+  year?: number;
 
   season: "kharif" | "rabi" | "summer" | "custom";
 
-  sowingDate: Date;
+  sowingDate: Date | null;
 
-  expectedHarvestDate: Date;
+  expectedHarvestDate: Date | null;
 }
 
 export interface ScoutingPoint {
