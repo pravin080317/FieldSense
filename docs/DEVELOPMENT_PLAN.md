@@ -1,5 +1,22 @@
 # Level 2 development plan
 
+## Approved place search and field pin
+
+- [x] Explicit town/village search, India/worldwide filters, source attribution and clear results.
+- [x] Apply chosen area to draft locality/coordinates; do not move the boundary.
+- [x] Set field centre with one map click; separate corner-marking mode and keyboard coordinates.
+- [x] Request cancellation/timeouts, session cache, response validation and tests (62 total); build/lint and live endpoint smoke.
+- [ ] Browser/phone acceptance: search Salem, select Tamil Nadu result, place centre, mark corners, save/reload and confirm retained geometry. Test offline and provider/CORS failures.
+
+
+## Map location discovery fix
+
+- [x] Locate me directly on the map; separate device marker and accuracy circle.
+- [x] Clarify sample field versus device location; do not infer boundaries.
+- [x] Secure-context/permission/unavailable/timeout guidance and synthetic tests.
+- [ ] Physical-phone permission/location checks over HTTPS; desktop approximate accuracy and map recentering acceptance.
+
+
 ## Dated field imagery — 21 November 2026
 
 - [x] Review Photogrammetry Guide, farmOS changelog and FarmVibes; document decisions in IMAGERY_REVIEW.md.

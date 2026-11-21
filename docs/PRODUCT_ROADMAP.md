@@ -6,6 +6,10 @@ Status: recorded product direction for ongoing work; individual features below a
 
 ## Implementation update — 20 November 2026
 
+21 November: approved place search and map centre selection implemented in field setup. Explicit Open-Meteo/GeoNames locality searches fill draft coordinates, then the user can set an exact centre on the map. Boundaries remain manual/imported and save explicitly. Browser acceptance remains pending.
+
+21 November: added explicit map Locate me with transient device marker/accuracy circle and error guidance. The map no longer relies on the field editor to expose location capture. Device position does not detect ownership, boundaries or saved check points. Physical-device acceptance remains pending.
+
 21 November: dated field imagery viewer added in My field, inspired by the supplied photogrammetry/farmOS/FarmVibes sources. It displays user-supplied north-up exports with manual bounds and opacity; processing, georeferencing and analytics remain external/future work. See [IMAGERY_REVIEW.md](IMAGERY_REVIEW.md).
 
 21 November: reviewed awesome-agriculture and relevant upstream projects. Added an original season activity/cost ledger with filters, category totals, missing-cost coverage and CSV export. See [OPEN_SOURCE_REVIEW.md](OPEN_SOURCE_REVIEW.md) for source comparisons and proposed inventory/harvest/weather priorities; external integrations remain planned.

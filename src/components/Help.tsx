@@ -153,6 +153,18 @@ export function HelpHint({
 }
 const answers = [
   {
+    category: "Maps and location",
+    question: "Can I find a field by place name or clicking the map?",
+    answer:
+      "Open My field and Add field or Edit field. Search a nearby town or village, select the correct place, then use Set field centre and tap your exact field location. Use Mark corners separately to draw the boundary and save the field. Search needs internet and sends the typed place name to Open-Meteo. A place result locates an area, not a farm boundary. You can always enter latitude and longitude directly.",
+  },
+  {
+    category: "Maps and location",
+    question: "Why is the map showing a sample instead of my field?",
+    answer:
+      "The starter workspace shows a sample field near Salem. Tap Locate me on the map and allow location permission to show your device position. This does not identify your farm or save a boundary. In My field, add a field, enter or use your device coordinates, mark/import its boundary and save. Device location needs HTTPS or localhost, browser permission and working device location services. Desktop results can be approximate; the accuracy circle shows the reported uncertainty.",
+  },
+  {
     category: "Getting started",
     question: "What should I do first?",
     answer:

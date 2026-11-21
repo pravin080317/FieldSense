@@ -9,6 +9,7 @@ import {
 } from "../services/farm";
 import { localDate } from "../services/workspace";
 import { GeographicMap } from "./GeographicMap";
+import { PlaceSearch } from "./PlaceSearch";
 import { Icon } from "./Visuals";
 export function FieldControls({
   fields,
@@ -255,6 +256,15 @@ export function FieldControls({
           </div>
           {!seasonOnly && (
             <>
+              <PlaceSearch
+                key={draft.id}
+                onChoose={(place) =>
+                  change({
+                    location: { lat: place.lat, lng: place.lng },
+                    locality: place.label.slice(0, 150),
+                  })
+                }
+              />
               <div className="form-grid">
                 <label>
                   Field name
@@ -356,7 +366,12 @@ export function FieldControls({
                 You can register a centre point now and add a boundary later.
                 Suggested check points must be verified in your field.
               </p>
-              <GeographicMap field={draft} editing onBoundary={corners} />
+              <GeographicMap
+                field={draft}
+                editing
+                onBoundary={corners}
+                onLocation={(location) => change({ location })}
+              />
               <div className="boundary-inputs">
                 <label>
                   Import boundary (GeoJSON Polygon)

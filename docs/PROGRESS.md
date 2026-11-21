@@ -10,6 +10,21 @@ Current maturity: **Level 1 prototype**. Level 2 development has started; Milest
 
 ## Latest implementation status — fields, maps, tasks and themes
 
+### Place search and map centre selection — 21 November 2026
+
+- User approved place search and click-to-set field location. Add/Edit field now includes explicit town/village search with India/worldwide filtering, labelled results and manual result selection. Search fills draft centre/locality only; saving remains explicit.
+- Added Set field centre mode and a visible draft centre marker. Centre selection and Mark corners are mutually exclusive. Existing corners are never translated when a centre changes. Coordinate inputs remain the keyboard/offline alternative.
+- Search uses Open-Meteo/GeoNames with provider attribution and disclosure that the place name is sent on Search. No search-as-you-type, device-coordinate transmission or private-address requirement. Requests time out/cancel, stale results are ignored, and repeated session queries are cached. Public endpoint is for the current non-commercial demonstration; commercial operation needs provider terms/plan review. No Nominatim service is used.
+- Validation: **62 tests, build and lint pass**. Tests cover result coordinate validation/deduplication, encoded country-filtered queries and error handling. Live HTTP smoke returned Salem, Tamil Nadu and other distinct matches; browser CORS/layout/click-to-set/permission acceptance is still pending. Unit tests do not verify map gestures.
+- Offline: saved geometry/coordinate entry remain usable, but place search and optional street tiles require internet. Place results are locality centres, not farm boundaries or ownership. The user subsequently authorised checking in these changes to main.
+
+### Map location discovery — 21 November 2026
+
+- User reported that the map was not detecting location. Existing GPS capture was only inside the field editor; map background tiles did not request device location.
+- Added explicit Locate me to GeographicMap, with fresh high-accuracy browser request, temporary position marker/accuracy circle and recentering. No automatic permission prompt, field rewrite, generated GPS check points or inferred farm ownership/boundary.
+- Added distinct unsupported-browser, insecure-origin, permission, unavailable-position and timeout guidance. Sample text now explains the starter Salem field and where to create a real field. Device position remains transient and is not saved in backups/reports. Online tile requests, when enabled by the user, follow the viewed map area.
+- Validation: 59 tests, build and lint pass. New tests use synthetic providers to cover secure context, request options, returned coordinates/accuracy and failure messages. No real device location was requested during automation. Browser permission/GPS/pan/zoom acceptance remains pending; existing bundle-size warning remains.
+
 ### Repository publication — 21 November 2026
 
 - User authorised publishing this project to `pravin080317/FieldSense` on `main`.
@@ -198,3 +213,9 @@ Finish the remaining migration/error/two-tab browser recovery checks, then conti
 - User authorised proceeding with real controls, modern themes, maps and the next roadmap items.
 - Started L2-01/L2-04 and the associated L2-00 version 4 migration. Plan and verification checklist added to DEVELOPMENT_PLAN.md.
 - No completed status is claimed until implementation and checks finish.
+
+
+### Location controls check-in — 21 November 2026
+
+- User authorised committing and pushing the map Locate me, place search and click-to-set centre increment to main. Includes source, tests, help and roadmap/progress updates.
+- Validation: 62 tests, production build and lint pass; live Salem place-search endpoint smoke passed previously. Browser/GPS acceptance and bundle-size warning remain pending.

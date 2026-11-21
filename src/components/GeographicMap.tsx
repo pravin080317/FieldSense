@@ -5,6 +5,7 @@ import type { FarmField, Coordinate } from "../types/farm";
 import type { FieldImagery } from "../types/imagery";
 import { fieldPoints, boundaryGeoJSON } from "../services/farm";
 import { Icon } from "./Visuals";
+import { requestDevicePosition } from "../services/location";
 
 export function GeographicMap({
   field,
@@ -14,6 +15,7 @@ export function GeographicMap({
   onBoundary,
   imagery,
   opacity = 0.65,
+  onLocation,
 }: {
   field: FarmField;
   point?: string;
@@ -22,6 +24,7 @@ export function GeographicMap({
   onBoundary?: (points: Coordinate[]) => void;
   imagery?: FieldImagery;
   opacity?: number;
+  onLocation?: (location: Coordinate) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -29,8 +32,16 @@ export function GeographicMap({
   const tiles = useRef<L.TileLayer | null>(null);
   const [streets, setStreets] = useState(false);
   const [draw, setDraw] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [notice, setNotice] = useState("");
+  const deviceLayer = useRef<L.LayerGroup | null>(null);
+  const locating = useRef(false);
+  const [locationStatus, setLocationStatus] = useState<{
+    fieldId: string;
+    busy: boolean;
+    text: string;
+  }>({ fieldId: field.id, busy: false, text: "" });
   useEffect(() => {
     if (!host.current) return;
     const view = L.map(host.current, {
@@ -40,6 +51,7 @@ export function GeographicMap({
     view.createPane("field-imagery").style.zIndex = "350";
     map.current = view;
     shapes.current = L.layerGroup().addTo(view);
+    deviceLayer.current = L.layerGroup().addTo(view);
     const resize = new ResizeObserver(() => view.invalidateSize());
     resize.observe(host.current);
     return () => {
@@ -48,6 +60,8 @@ export function GeographicMap({
       map.current = null;
       shapes.current = null;
       tiles.current = null;
+      deviceLayer.current = null;
+      locating.current = false;
     };
   }, [field.id]);
   useEffect(() => {
@@ -97,6 +111,14 @@ export function GeographicMap({
     const group = shapes.current;
     if (!group) return;
     group.clearLayers();
+    if (editing && onLocation)
+      L.circleMarker([field.location.lat, field.location.lng], {
+        radius: 7,
+        color: "#ae5a26",
+        fillOpacity: 1,
+      })
+        .bindTooltip("Field centre · draft location")
+        .addTo(group);
     if (field.boundary.length >= 2)
       L.polygon(
         field.boundary.map((p) => [p.lat, p.lng] as L.LatLngTuple),
@@ -133,11 +155,22 @@ export function GeographicMap({
           .bindTooltip(`Corner ${i + 1}`)
           .addTo(group),
       );
-  }, [field, point, editing, streets, onSelect]);
+  }, [field, point, editing, streets, onSelect, onLocation]);
   useEffect(() => {
     const view = map.current;
     if (!view) return;
     const click = (e: L.LeafletMouseEvent) => {
+      if (editing && picking && onLocation) {
+        onLocation({
+          lat: Number(e.latlng.lat.toFixed(7)),
+          lng: Number(e.latlng.lng.toFixed(7)),
+        });
+        setPicking(false);
+        setNotice(
+          "Draft field centre updated. Existing boundary corners stayed in place. Save the field to keep this location.",
+        );
+        return;
+      }
       if (editing && draw)
         onBoundary?.([
           ...field.boundary,
@@ -151,7 +184,7 @@ export function GeographicMap({
     return () => {
       view.off("click", click);
     };
-  }, [draw, editing, field.boundary, onBoundary]);
+  }, [draw, picking, editing, field.boundary, onBoundary, onLocation]);
   function fit() {
     const points = field.boundary.length
       ? field.boundary
@@ -160,6 +193,64 @@ export function GeographicMap({
       L.latLngBounds(points.map((p) => [p.lat, p.lng] as L.LatLngTuple)),
       { padding: [28, 28], maxZoom: 18 },
     );
+  }
+  async function locateMe() {
+    if (locating.current) return;
+    const view = map.current;
+    if (!view) return;
+    locating.current = true;
+    setLocationStatus({
+      fieldId: field.id,
+      busy: true,
+      text: "Waiting for device location. Allow the browser prompt if shown.",
+    });
+    try {
+      const position = await requestDevicePosition(
+        navigator.geolocation,
+        window.isSecureContext,
+      );
+      if (map.current !== view) return;
+      const group = deviceLayer.current;
+      group?.clearLayers();
+      if (group) {
+        L.circle([position.lat, position.lng], {
+          radius: position.accuracy,
+          color: "#2878bd",
+          fillOpacity: 0.1,
+          interactive: false,
+        }).addTo(group);
+        L.circleMarker([position.lat, position.lng], {
+          radius: 8,
+          color: "#fff",
+          fillColor: "#2878bd",
+          fillOpacity: 1,
+          weight: 3,
+        })
+          .bindTooltip("Your device location · not a field boundary")
+          .addTo(group);
+      }
+      view.setView(
+        [position.lat, position.lng],
+        position.accuracy > 1000 ? 12 : 17,
+      );
+      setLocationStatus({
+        fieldId: field.id,
+        busy: false,
+        text: `Device location found at ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)} (reported accuracy ±${Math.round(position.accuracy)} m). ${position.accuracy > 100 ? "This is approximate; do not use it to mark field corners. " : ""}Shown on this map only. It does not change the saved field or check points.`,
+      });
+    } catch (error) {
+      if (map.current === view)
+        setLocationStatus({
+          fieldId: field.id,
+          busy: false,
+          text:
+            error instanceof Error
+              ? error.message
+              : "Could not read device location.",
+        });
+    } finally {
+      if (map.current === view) locating.current = false;
+    }
   }
   function exportGeometry() {
     try {
@@ -183,6 +274,16 @@ export function GeographicMap({
         </button>
         <button
           type="button"
+          onClick={locateMe}
+          disabled={locationStatus.fieldId === field.id && locationStatus.busy}
+        >
+          <Icon name="pin" size={16} />{" "}
+          {locationStatus.fieldId === field.id && locationStatus.busy
+            ? "Locating…"
+            : "Locate me"}
+        </button>
+        <button
+          type="button"
           aria-pressed={streets}
           onClick={() => {
             setStreets((v) => !v);
@@ -197,10 +298,27 @@ export function GeographicMap({
             type="button"
             className={draw ? "primary" : ""}
             aria-pressed={draw}
-            onClick={() => setDraw((v) => !v)}
+            onClick={() => {
+              setPicking(false);
+              setDraw((v) => !v);
+            }}
           >
             <Icon name="plus" size={15} />
             {draw ? "Finish marking" : "Mark corners"}
+          </button>
+        )}
+        {editing && onLocation && (
+          <button
+            type="button"
+            aria-pressed={picking}
+            className={picking ? "primary" : ""}
+            onClick={() => {
+              setDraw(false);
+              setPicking((v) => !v);
+            }}
+          >
+            <Icon name="pin" size={16} />
+            {picking ? "Cancel centre selection" : "Set field centre"}
           </button>
         )}
         <button type="button" onClick={exportGeometry}>
@@ -208,10 +326,17 @@ export function GeographicMap({
         </button>
       </div>
       <div
-        className={`geographic-canvas ${draw ? "drawing" : ""}`}
+        className={`geographic-canvas ${draw || picking ? "drawing" : ""}`}
         ref={host}
         aria-label={`Interactive map of ${field.name}. Use the controls to zoom or mark field corners.`}
       />
+      {picking && (
+        <p className="map-notice" role="status">
+          Click or tap the map once to set the draft field centre. Use the
+          coordinate inputs as a keyboard alternative. This does not draw or
+          move a boundary.
+        </p>
+      )}
       {editing && (
         <div className="boundary-toolbar">
           <span>
@@ -238,13 +363,23 @@ export function GeographicMap({
       )}
       <p className="map-source">
         {field.isIllustrative
-          ? "Illustrative sample geometry."
+          ? "Showing the Salem sample field, not your detected location. Use My field to add your own field."
           : "Boundary entered by you; check it against the field."}{" "}
         Check points are suggested locations, not GPS measurements.
         {streets
           ? " Street tiles: OpenStreetMap (internet required)."
           : " Local geometry view; no tile service is contacted."}
       </p>
+      <p className="map-source">
+        Locate me asks your device for its current position; allow location
+        permission when prompted. It does not detect farm boundaries. Online
+        street tiles are optional background maps.
+      </p>
+      {locationStatus.fieldId === field.id && locationStatus.text && (
+        <p className="map-notice" role="status">
+          {locationStatus.text}
+        </p>
+      )}
       {tileError && (
         <p className="map-notice" role="status">
           Street tiles could not load. Your boundary and points are still
