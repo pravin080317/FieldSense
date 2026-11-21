@@ -1,0 +1,17 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {EvidenceEngine} from '../src/services/EvidenceEngine.ts';
+const at=new Date('2024-10-19');
+const field:any={id:'f',season:{expectedHarvestDate:new Date('2024-11-15')}};
+const observation:any={id:'o',fieldId:'f',scoutingPointId:'p1',observedAt:at,recordedAt:at,source:'farmer',verificationStatus:'observed',isIllustrative:true,leafColor:'yellowing',leafLocation:'lower'};
+const soil:any={id:'s',fieldId:'f',testedAt:at,verificationStatus:'verified',labInterpretation:'low nitrogen'};
+const analyze=(o:any[]=[],s:any[]=[],w:any[]=[])=>EvidenceEngine.analyze(field,o,s,[],at,w);
+const status=(a:any,id:string)=>a.explanations.find((e:any)=>e.id===id).status;
+test('excludes observations and tests from another field',()=>{const a=analyze([{...observation,fieldId:'x'}],[{...soil,fieldId:'x'}]);assert.equal(status(a,'nutrient'),'insufficient evidence');});
+test('absent, stale and future soil reports stay missing',()=>{for(const s of [[],[{...soil,testedAt:new Date('2023-01-01')}],[{...soil,testedAt:new Date('2025-01-01')}]]){const a=analyze([observation],s);assert.equal(status(a,'nutrient'),'unresolved');assert.ok(a.missingCritical.some((v:string)=>v.includes('soil report')));}});
+test('district rain alone cannot support waterlogging',()=>{const a=analyze([],[],[{id:'r',fieldId:'f',observedAt:at,rainfallMm:100}]);assert.notEqual(status(a,'waterlogging'),'supported');});
+test('editing field soil observation changes the explanation',()=>{assert.equal(status(analyze([observation]),'waterlogging'),'insufficient evidence');assert.equal(status(analyze([{...observation,soilCondition:'waterlogged'}]),'waterlogging'),'supported');});
+test('simultaneous causes remain possible',()=>{const a=analyze([{...observation,soilCondition:'waterlogged'}],[soil]);assert.equal(status(a,'waterlogging'),'supported');assert.equal(status(a,'nutrient'),'supported');});
+test('insufficient evidence produces a next check',()=>{const a=analyze();assert.match(a.nextRecommendedCheck,/Scout/);assert.ok(a.explanations.every((e:any)=>e.status==='insufficient evidence'));});
+test('pests do not count as disease evidence',()=>{assert.equal(status(analyze([{...observation,visiblePestCount:8}]),'disease'),'insufficient evidence');});
+test('latest revisit replaces earlier symptoms',()=>{const a=analyze([{...observation,soilCondition:'waterlogged',observedAt:new Date('2024-10-18')},{...observation,id:'later',soilCondition:'dry'}]);assert.notEqual(status(a,'waterlogging'),'supported');});

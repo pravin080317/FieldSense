@@ -1,0 +1,147 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "boundary",
+        "source": "Illustrative farmer sample",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.1455,
+              11.6638
+            ],
+            [
+              78.1465,
+              11.6638
+            ],
+            [
+              78.1465,
+              11.6648
+            ],
+            [
+              78.1455,
+              11.6648
+            ],
+            [
+              78.1455,
+              11.6638
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "pt-1",
+        "source": "Illustrative farmer sample",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.1457,
+          11.6646
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "pt-2",
+        "source": "Illustrative farmer sample",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.1463,
+          11.6646
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "pt-3",
+        "source": "Illustrative farmer sample",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.1457,
+          11.664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "pt-4",
+        "source": "Illustrative farmer sample",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.1463,
+          11.664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "affected",
+        "source": "Illustrative farmer-reported patch; not satellite measured",
+        "date": "2024-10-18",
+        "fieldName": "Paddy Field 01",
+        "location": "Salem, Tamil Nadu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.1455,
+              11.664
+            ],
+            [
+              78.1459,
+              11.664
+            ],
+            [
+              78.1459,
+              11.6647
+            ],
+            [
+              78.1455,
+              11.6647
+            ],
+            [
+              78.1455,
+              11.664
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

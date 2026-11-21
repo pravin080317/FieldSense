@@ -1,0 +1,257 @@
+import { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import type { FarmField, Coordinate } from "../types/farm";
+import type { FieldImagery } from "../types/imagery";
+import { fieldPoints, boundaryGeoJSON } from "../services/farm";
+import { Icon } from "./Visuals";
+
+export function GeographicMap({
+  field,
+  point = "pt-1",
+  onSelect,
+  editing = false,
+  onBoundary,
+  imagery,
+  opacity = 0.65,
+}: {
+  field: FarmField;
+  point?: string;
+  onSelect?: (id: string) => void;
+  editing?: boolean;
+  onBoundary?: (points: Coordinate[]) => void;
+  imagery?: FieldImagery;
+  opacity?: number;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const map = useRef<L.Map | null>(null);
+  const shapes = useRef<L.LayerGroup | null>(null);
+  const tiles = useRef<L.TileLayer | null>(null);
+  const [streets, setStreets] = useState(false);
+  const [draw, setDraw] = useState(false);
+  const [tileError, setTileError] = useState(false);
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!host.current) return;
+    const view = L.map(host.current, {
+      scrollWheelZoom: false,
+      attributionControl: true,
+    }).setView([0, 0], 17);
+    view.createPane("field-imagery").style.zIndex = "350";
+    map.current = view;
+    shapes.current = L.layerGroup().addTo(view);
+    const resize = new ResizeObserver(() => view.invalidateSize());
+    resize.observe(host.current);
+    return () => {
+      resize.disconnect();
+      view.remove();
+      map.current = null;
+      shapes.current = null;
+      tiles.current = null;
+    };
+  }, [field.id]);
+  useEffect(() => {
+    map.current?.setView([field.location.lat, field.location.lng], 17);
+  }, [field.id, field.location.lat, field.location.lng]);
+  useEffect(() => {
+    const view = map.current;
+    if (!view || !imagery || imagery.fieldId !== field.id) return;
+    const layer = L.imageOverlay(
+      imagery.file.dataUrl,
+      [
+        [imagery.bounds.south, imagery.bounds.west],
+        [imagery.bounds.north, imagery.bounds.east],
+      ],
+      {
+        opacity,
+        interactive: false,
+        alt: imagery.title,
+        pane: "field-imagery",
+      },
+    ).addTo(view);
+    return () => {
+      view.removeLayer(layer);
+    };
+  }, [field.id, imagery, opacity]);
+  useEffect(() => {
+    const view = map.current;
+    if (!view) return;
+    if (streets) {
+      const layer = L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        },
+      ).addTo(view);
+      tiles.current = layer;
+      layer.on("tileerror", () => setTileError(true));
+      return () => {
+        view.removeLayer(layer);
+        tiles.current = null;
+      };
+    }
+  }, [streets, field.id]);
+  useEffect(() => {
+    const group = shapes.current;
+    if (!group) return;
+    group.clearLayers();
+    if (field.boundary.length >= 2)
+      L.polygon(
+        field.boundary.map((p) => [p.lat, p.lng] as L.LatLngTuple),
+        {
+          color: "#527c45",
+          weight: 3,
+          fillColor: "#94b46e",
+          fillOpacity: streets ? 0.23 : 0.24,
+        },
+      ).addTo(group);
+    fieldPoints(field).forEach((p) => {
+      const marker = L.marker([p.coordinates.lat, p.coordinates.lng], {
+        icon: L.divIcon({
+          className: "geo-checkpoint",
+          html: `<span class="${p.id === point ? "chosen" : ""}">${p.position}</span>`,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+        }),
+        keyboard: true,
+        title: `Select check point ${p.position}`,
+      }).addTo(group);
+      const text = document.createElement("span");
+      text.textContent = `${p.quadrat} · suggested location`;
+      marker.bindTooltip(text);
+      marker.on("click", () => onSelect?.(p.id));
+    });
+    if (editing)
+      field.boundary.forEach((p, i) =>
+        L.circleMarker([p.lat, p.lng], {
+          radius: 5,
+          color: "#a47c37",
+          fillOpacity: 1,
+        })
+          .bindTooltip(`Corner ${i + 1}`)
+          .addTo(group),
+      );
+  }, [field, point, editing, streets, onSelect]);
+  useEffect(() => {
+    const view = map.current;
+    if (!view) return;
+    const click = (e: L.LeafletMouseEvent) => {
+      if (editing && draw)
+        onBoundary?.([
+          ...field.boundary,
+          {
+            lat: Number(e.latlng.lat.toFixed(7)),
+            lng: Number(e.latlng.lng.toFixed(7)),
+          },
+        ]);
+    };
+    view.on("click", click);
+    return () => {
+      view.off("click", click);
+    };
+  }, [draw, editing, field.boundary, onBoundary]);
+  function fit() {
+    const points = field.boundary.length
+      ? field.boundary
+      : fieldPoints(field).map((p) => p.coordinates);
+    map.current?.fitBounds(
+      L.latLngBounds(points.map((p) => [p.lat, p.lng] as L.LatLngTuple)),
+      { padding: [28, 28], maxZoom: 18 },
+    );
+  }
+  function exportGeometry() {
+    try {
+      const url = URL.createObjectURL(
+        new Blob([boundaryGeoJSON(field)], { type: "application/geo+json" }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "fieldsense-boundary.geojson";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "No boundary to export.");
+    }
+  }
+  return (
+    <div className="geographic-map">
+      <div className="map-toolbar">
+        <button type="button" onClick={fit}>
+          <Icon name="field" size={16} /> Fit field
+        </button>
+        <button
+          type="button"
+          aria-pressed={streets}
+          onClick={() => {
+            setStreets((v) => !v);
+            setTileError(false);
+          }}
+        >
+          <Icon name="map" size={16} />
+          {streets ? "Hide street map" : "Show street map"}
+        </button>
+        {editing && (
+          <button
+            type="button"
+            className={draw ? "primary" : ""}
+            aria-pressed={draw}
+            onClick={() => setDraw((v) => !v)}
+          >
+            <Icon name="plus" size={15} />
+            {draw ? "Finish marking" : "Mark corners"}
+          </button>
+        )}
+        <button type="button" onClick={exportGeometry}>
+          <Icon name="down" size={15} /> GeoJSON
+        </button>
+      </div>
+      <div
+        className={`geographic-canvas ${draw ? "drawing" : ""}`}
+        ref={host}
+        aria-label={`Interactive map of ${field.name}. Use the controls to zoom or mark field corners.`}
+      />
+      {editing && (
+        <div className="boundary-toolbar">
+          <span>
+            {field.boundary.length} corners ·{" "}
+            {draw
+              ? "Click the map to add each corner."
+              : "Mark or import a boundary, then save the field."}
+          </span>
+          <button
+            type="button"
+            disabled={!field.boundary.length}
+            onClick={() => onBoundary?.(field.boundary.slice(0, -1))}
+          >
+            Undo corner
+          </button>
+          <button
+            type="button"
+            disabled={!field.boundary.length}
+            onClick={() => onBoundary?.([])}
+          >
+            Clear draft corners
+          </button>
+        </div>
+      )}
+      <p className="map-source">
+        {field.isIllustrative
+          ? "Illustrative sample geometry."
+          : "Boundary entered by you; check it against the field."}{" "}
+        Check points are suggested locations, not GPS measurements.
+        {streets
+          ? " Street tiles: OpenStreetMap (internet required)."
+          : " Local geometry view; no tile service is contacted."}
+      </p>
+      {tileError && (
+        <p className="map-notice" role="status">
+          Street tiles could not load. Your boundary and points are still
+          available.
+        </p>
+      )}
+      {notice && <p role="status">{notice}</p>}
+    </div>
+  );
+}

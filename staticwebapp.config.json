@@ -1,0 +1,30 @@
+{
+  "auth": {
+    "identityProviders": {
+      "customOpenIdConnectProviders": {}
+    }
+  },
+  "routing": {
+    "routes": [
+      {
+        "route": "/*",
+        "allowedRoles": [],
+        "redirect": "/index.html"
+      },
+      {
+        "route": "/index.html",
+        "allowedRoles": [],
+        "headers": {
+          "Cache-Control": "max-age=0, must-revalidate"
+        }
+      }
+    ],
+    "platformErrorOverrides": [
+      {
+        "errorType": "NotFound",
+        "serve": "/index.html",
+        "statusCode": 200
+      }
+    ]
+  }
+}

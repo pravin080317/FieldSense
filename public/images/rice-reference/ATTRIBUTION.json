@@ -1,0 +1,38 @@
+[
+  {
+    "id": "bacterial-leaf-blight",
+    "label": "Bacterial leaf blight",
+    "image": "/images/rice-reference/bacterial-leaf-blight.jpg",
+    "originalPath": "Bacterial leaf blight/DSC_0365.JPG",
+    "sha256": "9a7afb91384bc6ca8a7a203e2b6090abed2a8a199bb0a40293601c3e74b969e6",
+    "bytes": 467109,
+    "source": "https://archive.ics.uci.edu/dataset/486/rice+leaf+diseases",
+    "license": "CC BY 4.0",
+    "credit": "Jitesh Shah, Harshadkumar Prajapati and Vipul Dabhi; UCI Machine Learning Repository",
+    "modified": false
+  },
+  {
+    "id": "brown-spot",
+    "label": "Brown spot",
+    "image": "/images/rice-reference/brown-spot.jpg",
+    "originalPath": "Brown spot/DSC_0100.jpg",
+    "sha256": "821731a7cce36ddf19c3e3dc05d91f483d09204fdb851b6e9a304dcebd08ae02",
+    "bytes": 41168,
+    "source": "https://archive.ics.uci.edu/dataset/486/rice+leaf+diseases",
+    "license": "CC BY 4.0",
+    "credit": "Jitesh Shah, Harshadkumar Prajapati and Vipul Dabhi; UCI Machine Learning Repository",
+    "modified": false
+  },
+  {
+    "id": "leaf-smut",
+    "label": "Leaf smut",
+    "image": "/images/rice-reference/leaf-smut.jpg",
+    "originalPath": "Leaf smut/DSC_0293.JPG",
+    "sha256": "8325c918c1b35202593ee5755108f4d8b174889d0452c13462f71e730cc0017d",
+    "bytes": 353939,
+    "source": "https://archive.ics.uci.edu/dataset/486/rice+leaf+diseases",
+    "license": "CC BY 4.0",
+    "credit": "Jitesh Shah, Harshadkumar Prajapati and Vipul Dabhi; UCI Machine Learning Repository",
+    "modified": false
+  }
+]

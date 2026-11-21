@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Illustrative field map</title><link rel="stylesheet" href="https://js.arcgis.com/5.2/esri/themes/light/main.css"><style>html,body,#view{height:100%;margin:0}#status{position:absolute;top:0;left:0;background:white;padding:8px;z-index:2;font:12px sans-serif}</style><div id="status">Loading ArcGIS. If unavailable, return to the offline diagram.</div><div id="view"></div><script type="module">
+import 'https://js.arcgis.com/5.2/';
+try {
+ const [Map,MapView,Graphic,GraphicsLayer,config]=await $arcgis.import(['@arcgis/core/Map.js','@arcgis/core/views/MapView.js','@arcgis/core/Graphic.js','@arcgis/core/layers/GraphicsLayer.js','@arcgis/core/config.js']);
+ const key=new URLSearchParams(location.search).get('key');if(key)config.apiKey=key;
+ const layer=new GraphicsLayer(); const map=new Map({basemap:key?'arcgis/topographic':null,layers:[layer]});
+ const view=new MapView({container:'view',map,center:[78.1460,11.6643],zoom:17});
+ const data=await fetch('./geojson/field.json').then(r=>r.json());
+ for(const f of data.features){const point=f.geometry.type==='Point';layer.add(new Graphic({geometry:point?{type:'point',longitude:f.geometry.coordinates[0],latitude:f.geometry.coordinates[1]}:{type:'polygon',rings:f.geometry.coordinates,spatialReference:{wkid:4326}},attributes:f.properties,symbol:point?{type:'simple-marker',color:'#1b5136',size:14,outline:{color:'white',width:2}}:{type:'simple-fill',color:f.properties.id==='affected'?[70,140,130,0.4]:[130,170,90,0.25],outline:{color:'#375a3f',width:2}},popupTemplate:{title:'{id}',content:'{source} / {date}'}}));}
+ view.on('click',async e=>{const hit=await view.hitTest(e);const id=hit.results.find(r=>r.graphic?.attributes?.id?.startsWith('pt-'))?.graphic.attributes.id;if(id)parent.postMessage({type:'scouting-point',id},location.origin);});
+ await view.when();document.getElementById('status').textContent='Illustrative farmer sample / 18 Oct 2024 / select a point';
+}catch(e){document.getElementById('status').textContent='Map unavailable. Use the offline diagram.';}
+</script></html>

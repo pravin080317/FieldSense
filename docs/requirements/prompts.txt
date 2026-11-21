@@ -1,0 +1,136 @@
+Use these prompts **in order** in GitHub Copilot Chat, preferably in **Agent mode**. They describe a working student project, not just a visual reproduction of the mockups.
+
+The proposed implementation is a **React + TypeScript static web app**. It can run the field workflow and decision rules in the browser. The demo uses clearly labelled sample records; it does not claim live sensor readings or a confirmed diagnosis.
+
+## Prompt 1 — Establish the project
+
+```text
+Act as a senior frontend engineer, geospatial developer, UX designer, and agricultural decision-support architect.
+
+Build FieldSense: a mobile-first web application for monitoring one paddy field in Thanjavur, Tamil Nadu. Its purpose is to help a farmer collect field evidence, decide what to inspect next, and track the outcome. It must also provide an agronomist with an auditable case review.
+
+Use React, TypeScript, Vite, and accessible CSS. The app must build and run as a static site. Use local, version-controlled sample scenario data for the initial implementation. Label it "Illustrative sample data" wherever users might mistake it for a live record.
+
+Before writing code:
+1. Inspect the repository and existing instructions.
+2. Propose the folder structure, data model, page routes, and implementation sequence.
+3. Identify which features can genuinely work in a static app and which would require a backend.
+4. Then implement the application, rather than stopping at a plan.
+
+The core journey is:
+Today → Guided scouting → Investigation → Record next check → Follow-up.
+
+Do not create a generic chatbot, a disease-name-only classifier, fake live weather, or hard-coded screens that do not react to user input.
+```
+
+## Prompt 2 — Build the screens
+
+```text
+Implement the FieldSense UI using the agreed project structure.
+
+Mobile farmer views:
+- Today: field selector, crop and growth stage, one prioritised task, brief reason, and Start field check button.
+- Fields: field profile, location, crop season, soil and water test status, and field history.
+- Guided scouting: four sampling points, progress indicator, whole-plant and close-up photo inputs, soil condition, visible pest count, symptoms, notes, GPS status, and timestamp.
+- Investigation: observed facts, working explanations, missing evidence, and one clear next check. Distinguish facts from inferences visually.
+- Follow-up: revisit date, same sampling points, before/after photos, better/same/worse response, and action outcome.
+
+Desktop agronomist view:
+- Case overview with a restrained field map.
+- Evidence ledger with observation, date, location, source, and verification status.
+- Working explanations and the evidence supporting or weakening each.
+- Missing information and next inspection.
+- Field timeline and case-report export.
+
+Use the latest mockup's direction: the farmer sees a simple action; the agronomist sees the detailed evidence. Make the layout responsive and keyboard accessible. Use plain language suitable for a farmer. Avoid unsupported percentages or claims that a disease has been ruled out.
+```
+
+## Prompt 3 — Implement the data and decision logic
+
+```text
+Create a typed domain model and a working evidence engine for the paddy demonstration.
+
+Entities should include Field, CropSeason, ScoutingPoint, Observation, Photo, WeatherRecord, SoilTest, WaterTest, FarmOperation, Investigation, Hypothesis, RecommendedCheck, Action, and FollowUp.
+
+Every piece of evidence must retain:
+- observedAt and recordedAt
+- fieldId and optional scoutingPointId
+- source type: farmer, laboratory, district weather, or agronomist
+- verification status
+- units where applicable
+- whether the record is actual user input or illustrative sample data
+
+Implement transparent, deterministic rules for three working explanations in the sample case: waterlogging, nutrient stress, and disease requiring further inspection. The rules must consider the location of symptoms, soil condition, recent rain, crop stage, and missing test information.
+
+The output must include:
+- supported, unresolved, or insufficient evidence for each explanation
+- a human-readable explanation referencing the exact evidence used
+- the most useful next observation
+- reasons a conclusion cannot yet be reached
+
+A district rainfall record is contextual evidence, not proof of standing water in the field. An old or different-field soil test must not be treated as a current test for this field. Allow more than one explanation to remain open.
+
+Make the result recompute immediately when a user changes or adds an observation. Keep the agronomic rules in separate, documented files so they can be reviewed by a subject-matter expert.
+```
+
+## Prompt 4 — Add the map using ArcGIS
+
+```text
+Add a geospatial view using the current ArcGIS Maps SDK for JavaScript documentation.
+
+Requirements:
+- Render the sample field boundary, four scouting points, and the reported affected area from local GeoJSON.
+- Selecting a scouting point must open its observations and photos.
+- Show source and date for every map overlay.
+- Provide a simple field diagram fallback if ArcGIS services or the internet are unavailable.
+- Do not imply that an illustrative affected polygon was measured by satellite.
+- Keep mapping code behind a small component/service boundary so the rest of the app does not depend on ArcGIS.
+- Read the ArcGIS API key from a Vite environment variable if a basemap needs one. Never commit a real key. Document required privileges and that a browser key is visible to users.
+- Do not upload private farmer data into a public ArcGIS layer.
+
+First verify the currently supported SDK integration and licensing from Esri documentation. Implement only the features needed for the demo.
+```
+
+## Prompt 5 — Make the demo convincing
+
+```text
+Create three interactive, clearly labelled demonstration scenarios using the same paddy field:
+
+A. Yellowing in a low patch after rain, with wet soil but unknown root condition.
+B. Yellowing across several points with a recent soil test suggesting a nutrient issue, but without convincing disease signs.
+C. Leaf damage with increasing pest counts at two scouting points.
+
+The presenter must be able to add or change one observation live and show the investigation update immediately. Provide a "Reset scenario" action.
+
+For each scenario, show:
+- initial evidence
+- missing evidence
+- next recommended check
+- the new evidence entered during the demo
+- the revised explanation and action
+- a scheduled follow-up
+
+Do not script a fixed result behind a button. The result must come from the shared evidence engine. Include a presenter-friendly sample-data indicator and a short "How this decision was made" view.
+```
+
+## Prompt 6 — Verify and finish
+
+```text
+Review FieldSense as a final-year engineering project and finish the implementation.
+
+Add meaningful tests for:
+- evidence from the wrong field being excluded
+- stale or absent soil results being treated as missing
+- district rainfall not confirming field waterlogging on its own
+- changing a scouting observation changing the decision
+- simultaneous possible causes
+- insufficient evidence leading to a next check rather than a treatment claim
+
+Check mobile and desktop layouts, keyboard navigation, form labels, empty states, offline fallback, and static production build.
+
+Write a concise README covering setup, sample data, ArcGIS configuration, architecture, decision rules, what is genuinely implemented, limitations, and a five-minute panel demo script.
+
+Run the tests and production build, fix failures, and report the actual results. Do not describe planned features as completed.
+```
+
+**One instruction to keep pinned in Copilot:** *“Every conclusion shown in the UI must be traceable to dated evidence, and changing that evidence must change the result.”* That requirement is what makes FieldSense more than a polished mockup or a wrapper around a general AI chat.
